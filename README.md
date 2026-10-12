@@ -133,6 +133,7 @@ Host it on any VPS (or try it with `cloudflared tunnel --url http://localhost:33
 - **7 loops** float, pulse, rotate, kenburns, drift, shake, breathe · **9 easings** + cubic-bezier
 - **8 transitions** fade, slide, push, slideUp, zoom, wipe, blur, none
 - **Backgrounds** solid, animated gradient, `glow` (soft drifting light), image with Ken Burns
+- **Sound effects** synthesized by Lampo and synced to the animations automatically (`"sfx": true`): whoosh, pop, tick, impact, boom, riser, ding and more — no audio files, no licensing
 - **Audio** with fades · **custom fonts** · **global layers** (logo, watermark) · vignette
 
 Full reference: [`src/guide.md`](src/guide.md) · Examples: [`examples/`](examples/) (Italian ones in [`examples/it/`](examples/it/))

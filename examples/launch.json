@@ -6,6 +6,7 @@
     "accent": "#0A84FF",
     "locale": "en-US"
   },
+  "sfx": true,
   "scenes": [
     {
       "duration": 3,

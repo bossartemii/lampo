@@ -7,6 +7,7 @@ const { createCanvas } = require('@napi-rs/canvas');
 const { normalize, parseLoose } = require('./spec');
 const { createRenderer } = require('./frame');
 const { run, ffmpegPath } = require('./ffmpeg');
+const sfx = require('./sfx');
 
 function runWorker(spec, from, to, out, onProgress) {
   return new Promise((resolve, reject) => {
@@ -38,7 +39,8 @@ async function render(input, out, opts = {}) {
   const maxW = opts.workers ?? Math.max(1, os.availableParallelism ? os.availableParallelism() : os.cpus().length);
   const n = Math.max(1, Math.min(maxW, Math.floor(frames / spec.fps) || 1));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lampo-'));
-  const silentOut = spec.audio ? path.join(tmp, 'video.mp4') : out;
+  const withSfx = sfx.hasSfx(spec);
+  const silentOut = spec.audio || withSfx ? path.join(tmp, 'video.mp4') : out;
 
   const done = new Array(n).fill(0);
   const report = () => opts.onProgress && opts.onProgress(done.reduce((a, b) => a + b, 0) / frames);
@@ -59,11 +61,25 @@ async function render(input, out, opts = {}) {
       fs.writeFileSync(list, parts.map((p) => `file '${p.file.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`).join('\n'));
       await run(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', silentOut]);
     }
-    if (spec.audio) {
-      const a = spec.audio;
-      const fade = a.fadeOut ?? 1;
-      const filter = `afade=t=in:st=0:d=${a.fadeIn ?? 0.3},afade=t=out:st=${Math.max(0, spec.duration - fade)}:d=${fade},volume=${a.volume ?? 1}`;
-      await run(['-i', silentOut, '-ss', String(a.start ?? 0), '-i', a.src, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-af', filter, '-t', String(spec.duration), '-movflags', '+faststart', out]);
+    if (spec.audio || withSfx) {
+      const inputs = ['-i', silentOut];
+      const chains = [];
+      const labels = [];
+      if (spec.audio) {
+        const a = spec.audio;
+        const fade = a.fadeOut ?? 1;
+        inputs.push('-ss', String(a.start ?? 0), '-i', a.src);
+        chains.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]afade=t=in:st=0:d=${a.fadeIn ?? 0.3},afade=t=out:st=${Math.max(0, spec.duration - fade)}:d=${fade},volume=${a.volume ?? 1}[music]`);
+        labels.push('[music]');
+      }
+      if (withSfx) {
+        const wav = path.join(tmp, 'sfx.wav');
+        fs.writeFileSync(wav, sfx.renderTrack(spec, sfx.buildEvents(spec)));
+        inputs.push('-i', wav);
+        labels.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]`);
+      }
+      const filter = chains.concat(labels.length > 1 ? [`${labels.join('')}amix=inputs=${labels.length}:normalize=0:duration=longest[aout]`] : [`${labels[0]}anull[aout]`]).join(';');
+      await run([...inputs, '-filter_complex', filter, '-map', '0:v', '-map', '[aout]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-t', String(spec.duration), '-movflags', '+faststart', out]);
     }
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

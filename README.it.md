@@ -114,6 +114,7 @@ Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-
 - **7 loop**: float, pulse, rotate, kenburns, drift, shake, breathe
 - **8 transizioni**: fade, slide, push, slideUp, zoom, wipe, blur, none
 - **Sfondi**: colore, gradiente animato, "glow" (luci morbide in movimento), immagine con Ken Burns
+- **Effetti sonori (SFX)** generati da Lampo e sincronizzati da soli con le animazioni (`"sfx": true`): whoosh, pop, tick, impact, boom, riser, ding e altri, senza file audio e senza problemi di diritti
 - **Audio** con fade in/out, **font personalizzati**, **layer globali** (logo/watermark), vignettatura
 - **JSON tollerante**: accetta commenti e virgole finali, errori tipici degli LLM
 

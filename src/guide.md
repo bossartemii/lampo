@@ -12,6 +12,8 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
   "theme": { "font": "Inter", "color": "#fff", "accent": "#0A84FF", "background": "#000", "locale": "en-US" },
   "vignette": true,            // optional dark edges, cinematic
   "audio": "music.mp3",        // optional; or { "src", "volume", "start", "fadeIn", "fadeOut" }
+  "sfx": true,                 // automatic sound effects synced to the animations (or { "auto": true, "volume": 0.8 })
+  "sounds": [{ "sound": "riser", "at": 1.2 }],   // optional manual sounds, absolute seconds
   "fonts": [{ "path": "Brand.ttf", "family": "Brand" }],
   "scenes": [ ... ],           // played in order
   "layers": [ ... ]            // optional global layers on top of everything, absolute times (logo, watermark)
@@ -60,11 +62,19 @@ Text only (animate per unit): rise (lines slide up from a mask — keynote style
 Loops: float, pulse, rotate, kenburns, drift, shake, breathe
 Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, or a cubic-bezier array [x1,y1,x2,y2]
 
+## Sound effects
+Synthesized by Lampo (no audio files, no licensing). Sounds: whoosh, swoosh, swipe, pop, click, tick, impact, boom, riser, ding, chime, glitch.
+- `"sfx": true` at top level adds them automatically: whoosh on slide/push/zoom/blur transitions, pop on popIn/wordsPop, impact on big zoomOut/drop titles, swoosh on rise/wordsUp/blurIn, swipe on slides and grow, ticks on typewriter/letters, ticks + ding on counters. Mixed under the music if `audio` is set.
+- Per layer: `"sfx": "boom"` or `{ "sound": "ding", "at": 0.3, "volume": 0.6 }` (at = seconds from the layer start), `"sfx": false` to mute it.
+- Per scene: `"sfx": "swoosh"` changes the transition sound, `"sfx": false` mutes it.
+- Manual: `"sounds": [{ "sound": "riser", "at": 1.2, "duration": 1.5 }]` — a riser ends at `at + duration`, good right before a big reveal. `pitch` changes pop/tick/ding.
+
 ## Recipes that look good
 - Hook first 1.5s: huge word (size 180–240, weight 900) + `blurIn` or `zoomOut`, then a smaller line with `wordsUp` delay 0.5.
 - Keynote headline: 2–3 short lines, `rise`, weight 800, one `**accent**` word.
 - Number: `counter` + `popIn`, gradient color `["#FFD60A","#FF6B00"]`.
 - CTA end card: brand name `letters` + `glow`, button = text with `bg` + `popIn` + `loop: pulse`.
 - 9:16 safe zone: keep text between y 15% and 80%; captions/UI of TikTok/Reels cover the edges.
+- Turn on `"sfx": true` for social ads: sound makes motion feel twice as fast. Add a `riser` before the final reveal and a `boom` on the brand name.
 - Stagger with `delay`, keep each scene 2.5–4s, transitions 0.5–0.7s, 3–5 scenes for a 10–15s ad.
 - Fonts available by default depend on the machine; Inter is safest. Register brand fonts with `fonts`.

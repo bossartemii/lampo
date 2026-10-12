@@ -6,6 +6,7 @@
     "accent": "#D4AF37",
     "locale": "it-IT"
   },
+  "sfx": true,
   "vignette": true,
   "scenes": [
     {

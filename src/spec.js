@@ -5,6 +5,7 @@
 const path = require('path');
 const { enter, loop, transitions } = require('./effects');
 const { easings } = require('./easing');
+const { SOUND_NAMES } = require('./sfx');
 
 const FORMATS = {
   '9:16': [1080, 1920], reel: [1080, 1920], story: [1080, 1920], tiktok: [1080, 1920],
@@ -78,6 +79,15 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     spec.scenes = [];
   }
 
+  const checkSound = (v, where) => {
+    if (v == null || typeof v === 'boolean' || v === 'auto') return;
+    const name = typeof v === 'string' ? v : v.sound || v.name || v.effect;
+    if (!SOUND_NAMES.includes(name)) problems.push(`${where}: sound "${name}" does not exist. Sounds: ${SOUND_NAMES.join(', ')}`);
+  };
+  checkSound(spec.sfx && typeof spec.sfx === 'object' ? null : spec.sfx, 'sfx');
+  spec.sounds = spec.sounds || [];
+  spec.sounds.forEach((x, i) => { checkSound(x, `sounds[${i}]`); if (!(x.at >= 0)) problems.push(`sounds[${i}]: "at" (seconds) is required`); });
+
   const checkLayer = (L, where) => {
     if (!L.type) L.type = L.text != null ? 'text' : L.src ? 'image' : 'rect';
     if (!LAYER_TYPES.includes(L.type)) problems.push(`${where}: type "${L.type}" does not exist. Types: ${LAYER_TYPES.join(', ')}`);
@@ -90,6 +100,7 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
       if (L[k] && enter[L[k].effect]?.split && !['text', 'counter'].includes(L.type)) problems.push(`${where}.${k}: "${L[k].effect}" only works on text and counter layers`);
       if (L[k] && L[k].easing && typeof L[k].easing === 'string' && !easings[L[k].easing]) problems.push(`${where}.${k}: easing "${L[k].easing}" does not exist. Use: ${Object.keys(easings).join(', ')}`);
     }
+    checkSound(L.sfx, `${where}.sfx`);
     const loops = L.loop == null ? [] : Array.isArray(L.loop) ? L.loop : [L.loop];
     L.loop = loops.map((x) => fxOpts(x, 'loop'));
     for (const lp of L.loop) if (!loop[lp.effect]) problems.push(`${where}.loop: "${lp.effect}" does not exist. Loops: ${Object.keys(loop).join(', ')}`);
@@ -109,6 +120,7 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     S.start = Math.max(0, cursor - (tr ? tr.duration : 0));
     S.end = S.start + S.duration;
     cursor = S.end;
+    checkSound(S.sfx, `${where}.sfx`);
     if (S.background && typeof S.background === 'object' && !Array.isArray(S.background) && S.background.src) S.background = { ...S.background, src: resolve(S.background.src) };
     S.layers = S.layers || [];
     S.layers.forEach((L, j) => checkLayer(L, `${where}.layers[${j}]`));

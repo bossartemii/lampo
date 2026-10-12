@@ -12,6 +12,7 @@ const http = require('http');
 const { render, preview, still } = require('../src/render');
 const { normalize, SpecError } = require('../src/spec');
 const { describe } = require('../src/effects');
+const { SOUND_NAMES } = require('../src/sfx');
 
 const VERSION = require('../package.json').version;
 const GUIDE = fs.readFileSync(path.join(__dirname, '../src/guide.md'), 'utf8');
@@ -81,7 +82,7 @@ async function callTool(name, args = {}) {
   try {
     switch (name) {
       case 'lampo_guide':
-        return text(GUIDE + '\n\n## Effect catalog\n' + JSON.stringify(describe()));
+        return text(GUIDE + '\n\n## Effect catalog\n' + JSON.stringify({ ...describe(), sounds: SOUND_NAMES }));
       case 'lampo_validate': {
         const s = normalize(toSpec(args.spec), { baseDir });
         return text({ ok: true, duration: +s.duration.toFixed(2), scenes: s.scenes.length, size: `${s.outWidth}x${s.outHeight}`, frames: s.totalFrames });

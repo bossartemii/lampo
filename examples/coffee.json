@@ -6,6 +6,15 @@
     "accent": "#F59E0B",
     "locale": "en-US"
   },
+  "sfx": true,
+  "sounds": [
+    {
+      "sound": "riser",
+      "at": 5.9,
+      "duration": 1.25,
+      "volume": 0.7
+    }
+  ],
   "vignette": true,
   "scenes": [
     {

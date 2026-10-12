@@ -109,6 +109,7 @@ Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-
 
 ## Cosa c'è dentro
 - **Formati**: 9:16, 1:1, 4:5, 16:9 (o width/height a mano), 1–120 fps, qualità draft/standard/high
+- **Demo di app e siti**: un iPhone il cui schermo si disegna in punti reali, gruppi per card/bottoni/schermate, un **dito** che scorre e tocca con l'onda del tocco, **keyframe** per zoom e bottoni premuti, **tratti a mano** che si disegnano da soli (sottolineatura, cerchio, freccia, spunta, qualsiasi SVG) e l'effetto **timbro**. Vedi `examples/it/artemii-preventivo.json`
 - **Layer**: text (con `**evidenziato**`, gradiente, bordo, pillola/bottone), counter, rect, circle, line, image, **clip video** (taglio iniziale, rallentatore, loop, angoli arrotondati, audio del clip a scelta)
 - **20 effetti** di entrata/uscita, tra cui `rise` (righe che salgono da una maschera, stile keynote), `wordsUp`, `letters`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`
 - **7 loop**: float, pulse, rotate, kenburns, drift, shake, breathe

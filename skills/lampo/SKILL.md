@@ -54,7 +54,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
   - `{ "type": "video", "src": "broll.mp4", "overlay": "rgba(0,0,0,.35)", "trim": 2, "rate": 1, "loop": true, "audio": false }` — b-roll filling the frame (cover crop), text goes on top
 
 ## Layer (common keys)
-- `type`: text | counter | rect | circle | line | image | video (inferred from `text` / `src` if omitted)
+- `type`: text | counter | rect | circle | line | image | video | path | group | phone | cursor (inferred from `text` / `src` / `shape` / `path` / `layers` if omitted)
 - `x`, `y`: px in design space, `"50%"`, or `"center" | "left" | "right" | "top" | "bottom"`. Default: center.
 - `anchor`: center (default) | top | bottom | left | right | top-left | ...
 - `start`, `end` or `duration`: seconds relative to the scene (default: whole scene)
@@ -62,6 +62,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
 - `out`: exit effect, same names, played in reverse at the end of the layer
 - `loop`: `"float"` or `{ "effect": "pulse", "amount": 0.04, "period": 1.2 }` or an array
 - `opacity`, `scale`, `rotate`, `shadow: true`, `glow: "rgba(255,160,0,.6)"`
+- `keyframes`: move/zoom over time, e.g. `[{ "t": 2, "y": "60%", "scale": 1 }, { "t": 2.8, "y": "52%", "scale": 1.15 }]` (t = seconds from the layer start; props x, y, scale, rotate, opacity; optional `easing`). A quick press: `[{t:1.9,scale:1},{t:2,scale:0.93},{t:2.15,scale:1}]`.
 
 ### text
 `text` (`\n` for new lines, `**word**` = accent color), `size` (default 72), `weight` (100–900, default 700),
@@ -77,6 +78,19 @@ A clip as a layer: `src` (mp4, mov, webm…), `w`, `h` (one is enough, the other
 `trim` (start the clip at N seconds), `rate` (0.5 = slow motion, 2 = double speed), `loop` (true by default; false freezes on the last frame),
 `audio: true` or `volume: 0.6` to hear the clip's own sound (muted by default). All effects work on it (`in`, `out`, `loop` animations via `{ "effect": ... }`).
 
+### group
+A box of child `layers`: `w`, `h`, `anchor`, optional `bg`, `radius` (clips children), `shadow`, `clip: true`. Children use the group's coordinates (0..w, 0..h, `"50%"` = middle of the group) and the group's clock (their `start`/`end` are relative to the group). Effects and keyframes on the group move everything inside. Use it for cards, buttons, stamps, notifications, app screens.
+
+### phone
+An iPhone mockup: `w` (default 600; height follows), `screen` (screen color, default white), `src` (a screenshot or a screen recording that fills the screen), `statusBar: false`, `time: "9:41"`, `frameColor`.
+Its `layers` are the screen content in **iPhone points: 390 wide, 844 tall** — design the app UI like a real phone. Typical pattern: several full-screen groups (`"x": 0, "y": 0, "w": 390, "h": 844, "anchor": "top-left"`) with `start`/`end`, each sliding in (`slideLeft`) as the next app screen; plus one `cursor` on top.
+
+### cursor
+A touch finger: `path`: `[{ "t": 0, "x": 250, "y": 640 }, { "t": 1, "x": 283, "y": 352, "tap": true }, ...]` (t relative to the cursor's `start`, positions in the parent's coordinates). It glides between points and shows a press + ripple on each `tap` (with a click sound when `sfx` is on). `size` (default 52). Pair taps with a button `keyframes` press at the same time.
+
+### path
+Strokes that draw themselves with `in: "draw"`: `shape` = underline | double-underline | circle | arrow | arrow-curved | check | cross | strike | bracket | spark (hand-drawn, stretched to `w` x `h`), or any SVG `d` (scaled to fit `w` x `h`). `color`, `strokeWidth` (default 14), `fill` (for solid shapes/logos, with `strokeWidth: 0`).
+
 ### rect / circle / line / image
 - rect: `w`, `h`, `radius`, `color` (or gradient array), `stroke`
 - circle: `r`, `color`
@@ -84,7 +98,7 @@ A clip as a layer: `src` (mp4, mov, webm…), `w`, `h` (one is enough, the other
 - image: `src` (local path or URL), `w`, `h`, `fit` (cover|contain), `radius`
 
 ## Effects
-Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp
+Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, slideUp (from below the frame), scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp, stamp (slams down tilted, like a rubber stamp), draw (paths draw their stroke)
 Text only (animate per unit): rise (lines slide up from a mask — keynote style), wordsUp, wordsPop, letters, typewriter
 Loops: float, pulse, rotate, kenburns, drift, shake, breathe
 Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, or a cubic-bezier array [x1,y1,x2,y2]
@@ -102,6 +116,8 @@ Synthesized by Lampo (no audio files, no licensing). Sounds: whoosh, swoosh, swi
 - Number: `counter` + `popIn`, gradient color `["#FFD60A","#FF6B00"]`.
 - CTA end card: brand name `letters` + `glow`, button = text with `bg` + `popIn` + `loop: pulse`.
 - B-roll: put the clip as the scene `background` with an `overlay` around 0.3–0.45 so white text stays readable; or as a rounded `video` layer next to the copy.
+- App / website demo (like a product walkthrough reel): warm light background, a `phone` that `slideUp`s in, screens as timed groups inside it, a `cursor` tapping buttons (button `keyframes` press at the tap time), `typewriter` text in input fields, a `stamp` group for the key promise, a `fadeDown` notification group above the phone, then an end card with the logo and a search bar typing the URL. See examples/it/artemii-preventivo.json.
+- Hand-drawn emphasis: a `path` with `shape: "underline"` or `"circle"` and `in: "draw"` under/around the key word.
 - 9:16 safe zone: keep text between y 15% and 80%; captions/UI of TikTok/Reels cover the edges.
 - Turn on `"sfx": true` for social ads: sound makes motion feel twice as fast. Add a `riser` before the final reveal and a `boom` on the brand name.
 - Stagger with `delay`, keep each scene 2.5–4s, transitions 0.5–0.7s, 3–5 scenes for a 10–15s ad.

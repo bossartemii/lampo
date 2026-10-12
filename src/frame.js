@@ -5,6 +5,7 @@
 
 const { createCanvas, loadImage, GlobalFonts, ImageData } = require('@napi-rs/canvas');
 const video = require('./video');
+const shapes = require('./shapes');
 const { enter, loop, splitTiming } = require('./effects');
 const { getEasing, easings, clamp01, lerp } = require('./easing');
 
@@ -143,7 +144,7 @@ function layoutOnce(ctx, L, theme, spec) {
 // ---------- animated layer state ----------
 
 function baseState(L) {
-  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null };
+  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null, draw: 1 };
 }
 
 function layerWindow(L, sceneDur) {
@@ -311,7 +312,8 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
   });
 
   // blinking caret for typewriter
-  if (split.in?.fx.typewriter && L.caret !== false) {
+  // the caret blinks while typing and a moment after, then goes away (caret: "always" keeps it)
+  if (split.in?.fx.typewriter && L.caret !== false && split.in.t >= -0.1 && (L.caret === 'always' || split.in.t <= timing.in.total + 0.5)) {
     const tm = timing.in;
     const shown = Math.min(units.length, Math.max(0, Math.floor(split.in.t / tm.stagger) + 1));
     const last = units[Math.max(0, shown - 1)];
@@ -392,12 +394,110 @@ function drawVideo(ctx, L, s, item, scaleOut) {
   ctx.restore();
 }
 
-function drawLayer(ctx, L, lt, win, env) {
+// a path that draws itself (presets like "underline", "circle", "arrow", or any SVG "d")
+function drawPath(ctx, L, theme, s, scaleOut) {
+  const w = L.w ?? 400, h = L.h ?? 120;
+  const [ax, ay] = ANCHORS[L.anchor || 'center'] || ANCHORS.center;
+  const box = { x: -w * ax, y: -h * ay, w, h };
+  const { segs, length } = shapes.fittedPath(L, w, h);
+  ctx.save();
+  applyTransform(ctx, s, box, scaleOut);
+  ctx.translate(box.x, box.y);
+  shapes.tracePath(ctx, segs);
+  if (L.fill && L.fill !== 'none' && s.draw >= 0.999) { ctx.fillStyle = makeFill(ctx, L.fill, 0, 0, w, h, theme.accent); ctx.fill(); }
+  const sw = L.strokeWidth ?? L.stroke?.width ?? 14;
+  if (sw > 0) {
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.lineWidth = sw;
+    ctx.strokeStyle = makeFill(ctx, L.color ?? L.stroke?.color, 0, 0, w, h, theme.accent);
+    if (s.draw < 0.999) { if (s.draw <= 0.001) { ctx.restore(); return; } ctx.setLineDash([length * s.draw, length + 10]); }
+    setShadow(ctx, L, scaleOut);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// children of a group/phone share the parent's time and are positioned inside its box
+function drawChildren(ctx, P, lt, win, env, frame) {
+  for (const C of P.layers || []) drawLayer(ctx, C, lt, layerWindow(C, win.dur), env, frame);
+}
+
+function drawGroup(ctx, L, s, lt, win, env) {
+  const w = L.w ?? env.spec.width, h = L.h ?? env.spec.height;
+  const [ax, ay] = ANCHORS[L.anchor || 'center'] || ANCHORS.center;
+  const box = { x: -w * ax, y: -h * ay, w, h };
+  ctx.save();
+  applyTransform(ctx, s, box, env.scaleOut);
+  if (L.bg || L.shadow) {
+    ctx.save(); setShadow(ctx, L, env.scaleOut);
+    roundRect(ctx, box.x, box.y, w, h, L.radius ?? 0);
+    ctx.fillStyle = makeFill(ctx, L.bg || '#fff', box.x, box.y, w, h, '#fff'); ctx.fill(); ctx.restore();
+  }
+  if (L.clip || L.radius) { roundRect(ctx, box.x, box.y, w, h, L.radius ?? 0); ctx.clip(); }
+  ctx.translate(box.x, box.y);
+  drawChildren(ctx, L, lt, win, env, { w, h });
+  ctx.restore();
+}
+
+function drawPhone(ctx, L, s, lt, win, env) {
+  const g = shapes.phoneGeometry(L);
+  const box = { x: -g.w / 2, y: -g.h / 2, w: g.w, h: g.h };
+  ctx.save();
+  applyTransform(ctx, s, box, env.scaleOut);
+  shapes.drawPhoneBody(ctx, L, g, env.scaleOut);
+  const sc = g.screen;
+  ctx.save();
+  shapes.roundRectPath(ctx, sc.x, sc.y, sc.w, sc.h, sc.r);
+  ctx.clip();
+  ctx.fillStyle = makeFill(ctx, L.screen || '#ffffff', sc.x, sc.y, sc.w, sc.h, '#fff');
+  ctx.fillRect(sc.x, sc.y, sc.w, sc.h);
+  const item = env.videos.get(L);
+  if (item && item.ready) ctx.drawImage(item.canvas, sc.x, sc.y, sc.w, sc.h);
+  else if (L.src && env.assets.get(L.src)) {
+    const img = env.assets.get(L.src);
+    const r = Math.max(sc.w / img.width, sc.h / img.height);
+    ctx.drawImage(img, sc.x + (sc.w - img.width * r) / 2, sc.y + (L.align === 'center' ? (sc.h - img.height * r) / 2 : 0), img.width * r, img.height * r);
+  }
+  // screen content is laid out in iPhone points: 390 wide
+  const k = sc.w / shapes.PHONE.pointsW;
+  ctx.translate(sc.x, sc.y);
+  ctx.scale(k, k);
+  const frame = { w: shapes.PHONE.pointsW, h: sc.h / k };
+  drawChildren(ctx, L, lt, win, env, frame);
+  if (L.statusBar !== false) shapes.drawStatusBar(ctx, L, s, env.theme);
+  ctx.restore();
+  ctx.restore();
+}
+
+// pt = time in the parent (scene, group or whole video); the layer's own clock starts at its "start"
+function drawLayer(ctx, L, pt, win, env, frame) {
+  const lt = pt - win.start;
   if (lt < 0 || lt > win.dur + 1e-6) return;
   const { s, split } = computeState(L, lt, win);
+  frame = frame || { w: env.spec.width, h: env.spec.height };
+  const resolve = (prop, v) => (prop === 'x' ? resolvePos(v, frame.w, frame.w / 2) : prop === 'y' ? resolvePos(v, frame.h, frame.h / 2) : v);
+  let px = resolvePos(L.x, frame.w, frame.w / 2), py = resolvePos(L.y, frame.h, frame.h / 2);
+  if (L.keyframes && L.keyframes.length) {
+    const kv = shapes.keyframeValues(L.keyframes, lt, resolve);
+    if (kv.x != null) px = kv.x;
+    if (kv.y != null) py = kv.y;
+    if (kv.scale != null) s.scale *= kv.scale;
+    if (kv.rotate != null) s.rotate += kv.rotate;
+    if (kv.opacity != null) s.opacity *= kv.opacity;
+  }
   if (!visible(s)) return;
+  if (L.type === 'cursor') {
+    const st = shapes.cursorState(L, lt, resolve);
+    if (!st) return;
+    ctx.save();
+    ctx.globalAlpha *= clamp01(s.opacity);
+    shapes.drawCursor(ctx, L, st);
+    ctx.restore();
+    return;
+  }
   ctx.save();
-  ctx.translate(resolvePos(L.x, env.spec.width, env.spec.width / 2), resolvePos(L.y, env.spec.height, env.spec.height / 2));
+  ctx.translate(px, py);
+  if ((L.type === 'text' || L.type === 'counter') && L.maxWidth == null && frame.w !== env.spec.width) L = { ...L, maxWidth: frame.w * 0.86 };
   if (L.type === 'text') drawText(ctx, L, env.theme, env.spec, s, split, env.scaleOut, lt);
   else if (L.type === 'counter') {
     const d = L.countDuration ?? 1.6;
@@ -407,6 +507,9 @@ function drawLayer(ctx, L, lt, win, env) {
     drawText(ctx, { ...L, wrap: false, fit: false, size: fin.fitSize ?? L.size, text: formatNumber(lerp(L.from ?? 0, L.to, p), L, env.theme) }, env.theme, env.spec, s, split, env.scaleOut, lt);
   } else if (L.type === 'image') drawImage(ctx, L, s, env.assets, env.scaleOut);
   else if (L.type === 'video') drawVideo(ctx, L, s, env.videos.get(L), env.scaleOut);
+  else if (L.type === 'path') drawPath(ctx, L, env.theme, s, env.scaleOut);
+  else if (L.type === 'group') drawGroup(ctx, L, s, lt, win, env);
+  else if (L.type === 'phone') drawPhone(ctx, L, s, lt, win, env);
   else drawShape(ctx, L, env.theme, s, env.scaleOut);
   ctx.restore();
 }
@@ -492,38 +595,51 @@ function drawScene(ctx, S, t, env) {
 const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv|avi|gif)(\?|$)/i;
 function isVideoSrc(src) { return VIDEO_EXT.test(String(src)); }
 
+// walk every layer, including children of groups and phones
+function walkLayers(layers, fn, ctx = { chain: [], k: 1 }) {
+  for (const L of layers || []) {
+    fn(L, ctx);
+    if (L.type === 'group') walkLayers(L.layers, fn, { chain: [...ctx.chain, L], k: ctx.k });
+    if (L.type === 'phone') { const g = shapes.phoneGeometry(L); walkLayers(L.layers, fn, { chain: [...ctx.chain, L], k: ctx.k * (g.screen.w / shapes.PHONE.pointsW) }); }
+  }
+}
+
 // every clip in the spec, each with its own decoder, sized for the output
 function setupVideos(spec, scaleOut) {
   const items = new Map();
-  const add = (key, kind, opts, scene, boxDesign) => {
+  const add = (key, kind, opts, scene, boxDesign, chain = [], k = 1) => {
     const info = video.probe(opts.src);
     let { w, h } = boxDesign;
     if (!w && !h) { w = info.width; h = info.height; }
     else if (!w) w = (h * info.width) / info.height;
     else if (!h) h = (w * info.height) / info.width;
-    const canvas = createCanvas(Math.max(2, Math.round(w * scaleOut)), Math.max(2, Math.round(h * scaleOut)));
+    const canvas = createCanvas(Math.max(2, Math.round(w * k * scaleOut)), Math.max(2, Math.round(h * k * scaleOut)));
     const src = new video.VideoSource({ src: opts.src, width: canvas.width, height: canvas.height, fit: opts.fit || 'cover', fps: spec.fps, rate: opts.rate ?? 1 });
-    items.set(key, { kind, opts, scene, info, src, canvas, box: { w, h }, ready: false });
+    items.set(key, { kind, opts, scene, info, src, canvas, box: { w, h }, chain, ready: false });
+  };
+  const visit = (S) => (L, c) => {
+    if (L.type === 'video') add(L, 'layer', L, S, { w: L.w, h: L.h }, c.chain, c.k);
+    if (L.type === 'phone' && L.src && isVideoSrc(L.src)) { const g = shapes.phoneGeometry(L); add(L, 'layer', L, S, { w: g.screen.w, h: g.screen.h }, c.chain, c.k); }
   };
   for (const S of spec.scenes) {
     const bg = S.background;
     if (bg && typeof bg === 'object' && !Array.isArray(bg) && bg.src && (bg.type === 'video' || isVideoSrc(bg.src))) add(bg, 'bg', bg, S, { w: spec.width, h: spec.height });
-    for (const L of S.layers) if (L.type === 'video') add(L, 'layer', L, S, { w: L.w, h: L.h });
+    walkLayers(S.layers, visit(S));
   }
-  for (const L of spec.layers) if (L.type === 'video') add(L, 'layer', L, null, { w: L.w, h: L.h });
+  walkLayers(spec.layers, visit(null));
   return items;
 }
 
 async function loadAssets(spec) {
   for (const f of spec.fonts || []) GlobalFonts.registerFromPath(f.path, f.family);
   const srcs = new Set();
-  const walk = (L) => { if (L.type === 'image' && L.src) srcs.add(L.src); };
+  const walk = (L) => { if ((L.type === 'image' || (L.type === 'phone' && L.src && !isVideoSrc(L.src))) && L.src) srcs.add(L.src); };
   for (const S of spec.scenes) {
-    S.layers.forEach(walk);
+    walkLayers(S.layers, walk);
     const bg = S.background;
     if (bg && typeof bg === 'object' && !Array.isArray(bg) && bg.src && bg.type !== 'video' && !isVideoSrc(bg.src)) srcs.add(bg.src);
   }
-  spec.layers.forEach(walk);
+  walkLayers(spec.layers, walk);
   const assets = new Map();
   await Promise.all([...srcs].map(async (src) => {
     try { assets.set(src, await loadImage(src)); }
@@ -607,9 +723,14 @@ async function createRenderer(spec) {
       let lt = t - sceneStart;
       let on = visibleScene;
       if (it.kind === 'layer') {
-        const win = layerWindow(it.opts, sceneDur);
-        lt -= win.start;
-        on = on && lt >= -1e-6 && lt <= win.dur + 1e-6;
+        // walk down through parent groups/phones: each has its own start and window
+        let parentDur = sceneDur;
+        for (const P of [...it.chain, it.opts]) {
+          const win = layerWindow(P, parentDur);
+          lt -= win.start;
+          on = on && lt >= -1e-6 && lt <= win.dur + 1e-6;
+          parentDur = win.dur;
+        }
       }
       if (!on) { it.ready = false; continue; }
       const buf = await it.src.frameAt(video.clipTimeFor(it.opts, it.info, lt));

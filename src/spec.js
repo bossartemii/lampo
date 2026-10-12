@@ -7,6 +7,7 @@ const path = require('path');
 const { enter, loop, transitions } = require('./effects');
 const { easings } = require('./easing');
 const { SOUND_NAMES } = require('./sfx');
+const { PRESETS } = require('./shapes');
 
 const FORMATS = {
   '9:16': [1080, 1920], reel: [1080, 1920], story: [1080, 1920], tiktok: [1080, 1920],
@@ -21,7 +22,7 @@ const QUALITY = {
   high:     { scale: 1,   crf: 16, preset: 'medium' },
 };
 
-const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'video', 'counter', 'line'];
+const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'video', 'counter', 'line', 'path', 'group', 'phone', 'cursor'];
 
 class SpecError extends Error {
   constructor(problems) {
@@ -93,7 +94,7 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
   spec.sounds.forEach((x, i) => { checkSound(x, `sounds[${i}]`); if (!(x.at >= 0)) problems.push(`sounds[${i}]: "at" (seconds) is required`); });
 
   const checkLayer = (L, where) => {
-    if (!L.type) L.type = L.text != null ? 'text' : L.src ? (/\.(mp4|mov|m4v|webm|mkv|avi)(\?|$)/i.test(L.src) ? 'video' : 'image') : 'rect';
+    if (!L.type) L.type = L.text != null ? 'text' : L.path || L.taps ? 'cursor' : L.shape || L.d ? 'path' : L.layers ? 'group' : L.src ? (/\.(mp4|mov|m4v|webm|mkv|avi)(\?|$)/i.test(L.src) ? 'video' : 'image') : 'rect';
     if (!LAYER_TYPES.includes(L.type)) problems.push(`${where}: type "${L.type}" does not exist. Types: ${LAYER_TYPES.join(', ')}`);
     if (L.type === 'text' && (L.text == null || L.text === '')) problems.push(`${where}: a text layer needs "text"`);
     if (L.type === 'image' || L.type === 'video') {
@@ -102,6 +103,21 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     }
     if (L.type === 'video' && L.rate != null && !(L.rate > 0)) problems.push(`${where}: "rate" must be > 0 (0.5 = slow motion, 2 = double speed)`);
     if (L.type === 'counter' && L.to == null) problems.push(`${where}: a counter needs "to" (and optionally "from")`);
+    if (L.type === 'path') {
+      if (!L.d && !L.shape) problems.push(`${where}: a path needs "shape" (${Object.keys(PRESETS).join(', ')}) or an SVG "d"`);
+      if (L.shape && !PRESETS[L.shape]) problems.push(`${where}: shape "${L.shape}" does not exist. Shapes: ${Object.keys(PRESETS).join(', ')}`);
+    }
+    if (L.type === 'cursor') {
+      const pts = L.path || L.taps;
+      if (!Array.isArray(pts) || !pts.length) problems.push(`${where}: a cursor needs "path": [{ "t": 0, "x": 200, "y": 400 }, { "t": 0.8, "x": 300, "y": 500, "tap": true }]`);
+      else pts.forEach((pt, k) => { if (pt.x == null || pt.y == null) problems.push(`${where}.path[${k}]: needs "x" and "y"`); });
+    }
+    if (L.type === 'phone' && L.src) { L.src = resolve(L.src); checkFile(L.src, where); }
+    if (Array.isArray(L.keyframes)) L.keyframes.forEach((k, j) => { if (k.t == null) problems.push(`${where}.keyframes[${j}]: needs "t" (seconds from the layer start)`); });
+    if (L.type === 'group' || L.type === 'phone') {
+      L.layers = L.layers || [];
+      L.layers.forEach((C, j) => checkLayer(C, `${where}.layers[${j}]`));
+    }
     for (const k of ['in', 'out']) {
       try { L[k] = fxOpts(L[k], k); } catch (e) { problems.push(`${where}.${k}: ${e.message}`); L[k] = null; }
       if (L[k] && !enter[L[k].effect]) problems.push(`${where}.${k}: effect "${L[k].effect}" does not exist. Effects: ${Object.keys(enter).join(', ')}`);

@@ -1,7 +1,7 @@
 {
   "name": "lampo",
   "displayName": "Lampo",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Fast videos from JSON for AI agents: ads, reels, motion graphics. Skia engine, no browser, parallel render.",
   "author": {
     "name": "Dimitri Artemii"

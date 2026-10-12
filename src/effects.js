@@ -23,6 +23,11 @@ const enter = {
   wipe:      { duration: 0.8, easing: 'inOut', apply: (s, p) => { s.clip = { x0: 0, x1: p, y0: 0, y1: 1 }; } },
   wipeUp:    { duration: 0.8, easing: 'inOut', apply: (s, p) => { s.clip = { x0: 0, x1: 1, y0: 1 - p, y1: 1 }; } },
   grow:      { duration: 0.8, easing: 'inOut', apply: (s, p) => { s.scaleX *= p; s.origin = 'left'; } },
+  // stamp: slams down from big and tilted, like a rubber stamp
+  stamp:     { duration: 0.42, easing: 'expoOut', apply: (s, p) => { s.opacity *= Math.min(1, Math.max(0, p) * 4); s.scale *= 1 + (1 - p) * 1.6; s.rotate += (1 - p) * -10; } },
+  // draw: a path layer draws its stroke from start to end (on other layers it acts as a wipe)
+  draw:      { duration: 0.8, easing: 'inOut', apply: (s, p) => { s.draw = Math.min(s.draw, Math.max(0, p)); } },
+  slideUp:   { duration: 0.8, apply: (s, p) => { s.opacity *= Math.min(1, p * 2); s.dy += (1 - p) * 900; } },
   growUp:    { duration: 0.8, easing: 'inOut', apply: (s, p) => { s.scaleY *= p; s.origin = 'bottom'; } },
 
   // --- text effects, unit by unit (word, letter, line) ---

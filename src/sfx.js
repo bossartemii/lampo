@@ -148,7 +148,7 @@ const SOUND_NAMES = Object.keys(SOUNDS);
 
 // which sound an animation makes when sfx are automatic
 const AUTO = {
-  popIn: 'pop', wordsPop: 'pop', spin: 'pop',
+  popIn: 'pop', wordsPop: 'pop', spin: 'pop', stamp: 'stamp', draw: 'swipe', slideUp: 'swoosh',
   zoomOut: 'impact', drop: 'impact',
   blurIn: 'swoosh', rise: 'swoosh', fadeUp: null, wordsUp: 'swoosh',
   slideLeft: 'swipe', slideRight: 'swipe', grow: 'swipe', growUp: 'swipe', wipe: 'swipe', wipeUp: 'swipe',
@@ -181,6 +181,7 @@ function buildEvents(spec) {
     if (!fx || !name) return;
     const delay = L.in.delay ?? 0, dur = L.in.duration ?? fx.duration;
     const big = (L.size ?? 72) >= 140;
+    if (name === 'stamp') { push(t0 + delay + dur * 0.5, 'impact', 0.55, { duration: 0.5 }); return; }
     if (name === 'impact') { if (big || L.in.effect === 'drop') push(t0 + delay + dur * (L.in.effect === 'drop' ? 0.36 : 0.55), 'impact', 0.7); else push(t0 + delay, 'swoosh', 0.5); return; }
     if (name === 'tick') {
       // one tick per character for typewriter; letters get a light tick every 2 characters
@@ -197,6 +198,13 @@ function buildEvents(spec) {
       return;
     }
     push(t0 + delay + (name === 'pop' ? 0.02 : 0), name, name === 'swipe' ? 0.45 : 0.55);
+  };
+
+  // children of groups/phones, cursor taps
+  const childEvents = (L, base) => {
+    const t0 = base + (L.start ?? 0);
+    if (L.type === 'cursor' && auto && !sfxOpts(L.sfx)?.off) for (const p of L.path || L.taps || []) if (p.tap) push(t0 + (p.t ?? 0), 'click', 0.8);
+    if (L.type === 'group' || L.type === 'phone') for (const C of L.layers || []) { layerEvents(C, t0); counterEvents(C, t0); childEvents(C, t0); }
   };
 
   const counterEvents = (L, base) => {
@@ -223,13 +231,13 @@ function buildEvents(spec) {
     // a light sound right inside the transition would just blur into the whoosh
     const quietUntil = S.transition ? S.start + S.transition.duration : -1;
     const before = events.length;
-    for (const L of S.layers) { layerEvents(L, S.start); counterEvents(L, S.start); }
+    for (const L of S.layers) { layerEvents(L, S.start); counterEvents(L, S.start); childEvents(L, S.start); }
     for (let k = events.length - 1; k >= before; k--) {
       const e = events[k];
       if (e.t < quietUntil && (e.sound === 'swoosh' || e.sound === 'swipe') && !e.manual) events.splice(k, 1);
     }
   });
-  for (const L of spec.layers) { layerEvents(L, 0); counterEvents(L, 0); }
+  for (const L of spec.layers) { layerEvents(L, 0); counterEvents(L, 0); childEvents(L, 0); }
   for (const s of spec.sounds || []) push(s.at ?? 0, s.sound, s.volume ?? 1, s);
 
   // keep it clean: the same sound can't retrigger closer than 40 ms

@@ -109,7 +109,8 @@
     .phone { position: static; max-width: 300px; margin: 0 auto; order: -1; }
     .agent, .support { grid-template-columns: 1fr; gap: 28px; }
     .row { grid-template-columns: 1fr; gap: 8px; }
-    .top nav a:not(.gh) { display: none; }
+    header.top { flex-wrap: wrap; row-gap: 14px; }
+    .top nav { width: 100%; justify-content: space-between; gap: 12px; font-size: 15px; }
   }
   @media (prefers-reduced-motion: reduce) {
     pre .scene { transition: none; }

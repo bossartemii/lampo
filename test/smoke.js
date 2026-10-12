@@ -47,6 +47,14 @@ const { ffmpegPath } = require('../src/ffmpeg');
     ] },
     { type: 'cursor', path: [{ t: 0, x: 100, y: 700 }, { t: 0.6, x: 195, y: 400, tap: true }] },
   ] });
+  scenes[7].layers.push(
+    { text: 'Veloce', size: 60, icon: 'gauge', iconDraw: true, in: 'glitch', y: '20%' },
+    { type: 'icon', name: 'truck', size: 80, in: 'draw', y: '40%' },
+    { type: 'spinner', size: 50, y: '55%' },
+    { type: 'rect', w: 40, h: 40, radius: 20, color: '#000', y: '70%', in: 'rush', keyframes: [{ t: 0, w: 40, h: 40, radius: 20 }, { t: 0.5, w: 300, h: 6, radius: 3, color: '#ff0000' }, { t: 1, w: 200, h: 80, radius: 10, color: '#00f' }] },
+    { type: 'circle', r: 10, x: '80%', y: '80%', keyframes: [{ t: 0, r: 10 }, { t: 1, r: 900 }] },
+    { type: 'cursor', style: 'arrow', path: [{ t: 0, x: 100, y: 100 }, { t: 0.5, x: 500, y: 500, tap: true }] },
+  );
   for (const shape of ['underline', 'circle', 'arrow', 'check']) scenes[6].layers.push({ type: 'path', shape, w: 300, h: 80, y: `${20 + scenes[6].layers.length * 8}%`, in: 'draw' });
   scenes[6].layers.push({ d: 'M10 80 Q 50 10 90 80 T 170 80', w: 300, h: 120, y: '80%', in: 'draw' });
   const spec = { format: '1:1', fps: 24, quality: 'draft', audio: { src: 'a.mp3', volume: 0.5 }, sfx: true, sounds: [{ sound: 'riser', at: 0.2, duration: 0.8 }, { sound: 'boom', at: 1.0 }, { sound: 'glitch', at: 2 }, { sound: 'click', at: 2.5 }], scenes, layers: [{ text: 'LOGO', size: 30, x: 'right', y: 'top', anchor: 'top-right', in: 'fade' }] };
@@ -59,11 +67,12 @@ const { ffmpegPath } = require('../src/ffmpeg');
   assert.throws(() => lampo.validate({ sounds: [{ sound: 'meow', at: 1 }], scenes: [{ duration: 1 }] }), /sound "meow" does not exist/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'video', src: 'nope.mp4' }] }] }), /file not found/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'path', shape: 'blob' }] }] }), /shape "blob" does not exist/);
+  assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'icon', name: 'unicorn' }] }] }), /icon "unicorn" does not exist/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'phone', layers: [{ type: 'cursor' }] }] }] }), /cursor needs "path"/);
   assert.strictEqual(s.scenes[4].layers[s.scenes[4].layers.length - 1].type, 'video');
   const sfx = require('../src/sfx');
   const events = sfx.buildEvents(s);
-  for (const name of ['whoosh', 'pop', 'tick', 'chime', 'riser', 'boom', 'ding', 'click', 'impact']) assert(events.some((e) => e.sound === name), `missing auto/manual sound ${name}`);
+  for (const name of ['whoosh', 'pop', 'tick', 'chime', 'riser', 'boom', 'ding', 'click', 'impact', 'glitch']) assert(events.some((e) => e.sound === name), `missing auto/manual sound ${name}`);
 
   const out = path.join(dir, 'smoke.mp4');
   const r = await lampo.render(spec, out, { baseDir: dir });

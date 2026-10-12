@@ -148,13 +148,13 @@ const SOUND_NAMES = Object.keys(SOUNDS);
 
 // which sound an animation makes when sfx are automatic
 const AUTO = {
-  popIn: 'pop', wordsPop: 'pop', spin: 'pop', stamp: 'stamp', draw: 'swipe', slideUp: 'swoosh',
+  popIn: 'pop', wordsPop: 'pop', spin: 'pop', stamp: 'stamp', draw: 'swipe', slideUp: 'swoosh', glitch: 'glitch', rush: 'whoosh',
   zoomOut: 'impact', drop: 'impact',
   blurIn: 'swoosh', rise: 'swoosh', fadeUp: null, wordsUp: 'swoosh',
   slideLeft: 'swipe', slideRight: 'swipe', grow: 'swipe', growUp: 'swipe', wipe: 'swipe', wipeUp: 'swipe',
   typewriter: 'tick', letters: 'tick',
 };
-const AUTO_TRANSITION = { fade: null, slide: 'whoosh', push: 'whoosh', slideUp: 'whoosh', zoom: 'whoosh', wipe: 'swoosh', blur: 'whoosh' };
+const AUTO_TRANSITION = { circle: 'whoosh', fade: null, slide: 'whoosh', push: 'whoosh', slideUp: 'whoosh', zoom: 'whoosh', wipe: 'swoosh', blur: 'whoosh' };
 
 function sfxOpts(v) {
   if (v == null || v === true) return null;

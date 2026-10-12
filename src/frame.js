@@ -144,7 +144,7 @@ function layoutOnce(ctx, L, theme, spec) {
 // ---------- animated layer state ----------
 
 function baseState(L) {
-  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null, draw: 1 };
+  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null, draw: 1, rgb: 0 };
 }
 
 function layerWindow(L, sceneDur) {
@@ -228,8 +228,12 @@ function formatNumber(v, L, theme) {
 
 function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
   const lay = layoutText(ctx, L, theme, spec);
+  // optional icon in front of the text ("icon": "gauge"), sized to the text
+  const iconSize = L.icon ? lay.size * (L.iconScale ?? 0.82) : 0;
+  const iconSpace = L.icon ? iconSize + lay.size * 0.28 : 0;
   const [ax, ay] = ANCHORS[L.anchor || 'center'] || ANCHORS.center;
-  const box = { x: -lay.w * ax, y: -lay.h * ay, w: lay.w, h: lay.h };
+  const box = { x: -(lay.w + iconSpace) * ax, y: -lay.h * ay, w: lay.w + iconSpace, h: lay.h };
+  const tb = { x: box.x + iconSpace, y: box.y, w: lay.w, h: lay.h };
   const align = L.align || 'center';
 
   ctx.save();
@@ -255,13 +259,30 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
   if (L.stroke) { ctx.strokeStyle = L.stroke.color || '#000'; ctx.lineWidth = L.stroke.width ?? 4; ctx.lineJoin = 'round'; }
   setShadow(ctx, L, scaleOut);
 
+  if (L.icon && shapes.ICONS[L.icon]) {
+    const { segs, length } = shapes.fittedPath({ type: 'icon', name: L.icon }, iconSize, iconSize);
+    // "iconDraw": true draws the icon's stroke during the entrance
+    const dp = L.iconDraw ? clamp01((lt - (L.in?.delay ?? 0)) / (L.iconDrawDuration ?? 0.6)) : 1;
+    if (dp > 0.001) {
+      ctx.save();
+      ctx.translate(box.x, box.y + lay.lh / 2 - iconSize / 2);
+      shapes.tracePath(ctx, segs);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.lineWidth = (iconSize / 24) * (L.iconWeight ?? 2.1);
+      ctx.strokeStyle = L.iconColor ? makeFill(ctx, L.iconColor, 0, 0, iconSize, iconSize, theme.color) : fill;
+      if (dp < 0.999) ctx.setLineDash([length * dp, length + 10]);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   // animatable units in reading order
   const anySplit = split.in || split.out;
   const mode = (split.in || split.out)?.fx.split || 'none';
   const units = [];
   lay.lines.forEach((line, li) => {
-    const lx = box.x + (align === 'left' ? 0 : align === 'right' ? lay.w - line.w : (lay.w - line.w) / 2);
-    const cy = box.y + lay.lh * (li + 0.5);
+    const lx = tb.x + (align === 'left' ? 0 : align === 'right' ? lay.w - line.w : (lay.w - line.w) / 2);
+    const cy = tb.y + lay.lh * (li + 0.5);
     if (mode === 'line') units.push({ words: line.words.map((w) => ({ ...w, ax: lx + w.x })), x: lx, y: cy - lay.lh / 2, w: line.w, h: lay.lh, cy });
     else for (const w of line.words) {
       if (mode === 'char') for (const c of w.chars) units.push({ char: c.text, accent: w.accent, x: lx + w.x + c.x, y: cy - lay.lh / 2, w: c.w, h: lay.lh, cy });
@@ -302,6 +323,14 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
     ctx.globalAlpha = baseAlpha * clamp01(us.opacity);
     if (us.blur > 0.3) ctx.filter = `blur(${(us.blur * scaleOut).toFixed(2)}px)`;
     const paint = (txt, x, accent) => {
+      if (s.rgb > 0.3) {
+        // chromatic split: a red and a cyan copy, offset in opposite directions
+        ctx.save();
+        ctx.globalAlpha *= 0.85;
+        ctx.fillStyle = L.rgbColors?.[0] || '#ff2d6f'; ctx.fillText(txt, x - s.rgb, u.cy - s.rgb * 0.25);
+        ctx.fillStyle = L.rgbColors?.[1] || '#18e0ff'; ctx.fillText(txt, x + s.rgb, u.cy + s.rgb * 0.25);
+        ctx.restore();
+      }
       if (L.stroke) ctx.strokeText(txt, x, u.cy);
       ctx.fillStyle = accent ? accentFill : fill;
       ctx.fillText(txt, x, u.cy);
@@ -409,7 +438,7 @@ function drawPath(ctx, L, theme, s, scaleOut) {
   if (sw > 0) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.lineWidth = sw;
-    ctx.strokeStyle = makeFill(ctx, L.color ?? L.stroke?.color, 0, 0, w, h, theme.accent);
+    ctx.strokeStyle = makeFill(ctx, L.color ?? L.stroke?.color, 0, 0, w, h, L.type === 'icon' ? theme.color : theme.accent);
     if (s.draw < 0.999) { if (s.draw <= 0.001) { ctx.restore(); return; } ctx.setLineDash([length * s.draw, length + 10]); }
     setShadow(ctx, L, scaleOut);
     ctx.stroke();
@@ -477,6 +506,7 @@ function drawLayer(ctx, L, pt, win, env, frame) {
   frame = frame || { w: env.spec.width, h: env.spec.height };
   const resolve = (prop, v) => (prop === 'x' ? resolvePos(v, frame.w, frame.w / 2) : prop === 'y' ? resolvePos(v, frame.h, frame.h / 2) : v);
   let px = resolvePos(L.x, frame.w, frame.w / 2), py = resolvePos(L.y, frame.h, frame.h / 2);
+  const orig = L;
   if (L.keyframes && L.keyframes.length) {
     const kv = shapes.keyframeValues(L.keyframes, lt, resolve);
     if (kv.x != null) px = kv.x;
@@ -484,6 +514,13 @@ function drawLayer(ctx, L, pt, win, env, frame) {
     if (kv.scale != null) s.scale *= kv.scale;
     if (kv.rotate != null) s.rotate += kv.rotate;
     if (kv.opacity != null) s.opacity *= kv.opacity;
+    if (kv.blur != null) s.blur += kv.blur;
+    if (kv.rgb != null) s.rgb += kv.rgb;
+    // shape morphing: size, corner radius, color, text size
+    if (kv.w != null || kv.h != null || kv.radius != null || kv.color != null || kv.size != null || kv.r != null) {
+      L = { ...L };
+      for (const k of ['w', 'h', 'radius', 'color', 'size', 'r']) if (kv[k] != null) L[k] = kv[k];
+    }
   }
   if (!visible(s)) return;
   if (L.type === 'cursor') {
@@ -506,10 +543,12 @@ function drawLayer(ctx, L, pt, win, env, frame) {
     const fin = layoutText(ctx, { ...L, wrap: false, text: formatNumber(L.to, L, env.theme) }, env.theme, env.spec);
     drawText(ctx, { ...L, wrap: false, fit: false, size: fin.fitSize ?? L.size, text: formatNumber(lerp(L.from ?? 0, L.to, p), L, env.theme) }, env.theme, env.spec, s, split, env.scaleOut, lt);
   } else if (L.type === 'image') drawImage(ctx, L, s, env.assets, env.scaleOut);
-  else if (L.type === 'video') drawVideo(ctx, L, s, env.videos.get(L), env.scaleOut);
+  else if (L.type === 'video') drawVideo(ctx, L, s, env.videos.get(orig), env.scaleOut);
+  else if (L.type === 'icon') drawPath(ctx, { ...L, w: L.size ?? 96, h: L.size ?? 96, strokeWidth: ((L.size ?? 96) / 24) * (L.strokeWidth ?? 2.1) }, env.theme, s, env.scaleOut);
+  else if (L.type === 'spinner') { const sz = L.size ?? 48; ctx.save(); applyTransform(ctx, s, { x: -sz / 2, y: -sz / 2, w: sz, h: sz }, env.scaleOut); shapes.drawSpinner(ctx, L, lt); ctx.restore(); }
   else if (L.type === 'path') drawPath(ctx, L, env.theme, s, env.scaleOut);
   else if (L.type === 'group') drawGroup(ctx, L, s, lt, win, env);
-  else if (L.type === 'phone') drawPhone(ctx, L, s, lt, win, env);
+  else if (L.type === 'phone') drawPhone(ctx, orig === L ? L : Object.assign(Object.create(orig), L), s, lt, win, env);
   else drawShape(ctx, L, env.theme, s, env.scaleOut);
   ctx.restore();
 }
@@ -698,6 +737,14 @@ async function createRenderer(spec) {
         case 'slideUp': put(a, 1, 0, -q * H * 0.2); put(b, 1, 0, (1 - q) * H); break;
         case 'zoom': put(a, 1 - q, 0, 0, 1 + q * 0.25); put(b, q, 0, 0, 0.85 + 0.15 * q); break;
         case 'blur': put(a, 1 - q, 0, 0, 1, q * 30); put(b, q, 0, 0, 1, (1 - q) * 30); break;
+        case 'circle': {
+          // iris: the new scene grows inside a circle from "origin" (default center)
+          put(a, 1);
+          const ox = resolvePos(tr.origin?.x, spec.width, spec.width / 2) * scaleOut, oy = resolvePos(tr.origin?.y, spec.height, spec.height / 2) * scaleOut;
+          const R = Math.hypot(Math.max(ox, W - ox), Math.max(oy, H - oy));
+          ctx.save(); ctx.beginPath(); ctx.arc(ox, oy, Math.max(0.1, R * q), 0, Math.PI * 2); ctx.clip(); ctx.drawImage(b, 0, 0); ctx.restore();
+          break;
+        }
         case 'wipe':
           put(a, 1);
           ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W * q, H); ctx.clip(); ctx.drawImage(b, 0, 0); ctx.restore();

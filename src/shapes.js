@@ -20,7 +20,68 @@ const PRESETS = {
   spark: 'M50 4 L 50 30 M50 70 L 50 96 M4 50 L 30 50 M70 50 L 96 50 M18 18 L 34 34 M66 66 L 82 82 M82 18 L 66 34 M34 66 L 18 82',
 };
 
-// Parse an SVG path into absolute segments: M, L, C (quadratics become cubics).
+// SVG elliptical arc -> cubic béziers (endpoint parameterization, SVG spec F.6)
+function arcToCubics(x1, y1, rx, ry, angle, large, sweep, x2, y2) {
+  if (rx === 0 || ry === 0 || (x1 === x2 && y1 === y2)) return [[x1, y1, x2, y2, x2, y2]];
+  rx = Math.abs(rx); ry = Math.abs(ry);
+  const phi = (angle * Math.PI) / 180, cos = Math.cos(phi), sin = Math.sin(phi);
+  const dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+  const x1p = cos * dx + sin * dy, y1p = -sin * dx + cos * dy;
+  const lam = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
+  if (lam > 1) { rx *= Math.sqrt(lam); ry *= Math.sqrt(lam); }
+  const sign = large === sweep ? -1 : 1;
+  const num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p;
+  const co = sign * Math.sqrt(Math.max(0, num / (rx * rx * y1p * y1p + ry * ry * x1p * x1p)));
+  const cxp = (co * rx * y1p) / ry, cyp = (-co * ry * x1p) / rx;
+  const cx = cos * cxp - sin * cyp + (x1 + x2) / 2, cy = sin * cxp + cos * cyp + (y1 + y2) / 2;
+  const ang = (ux, uy, vx, vy) => { const a = Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy); return a; };
+  const t1 = ang(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry);
+  let dt = ang((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry);
+  if (!sweep && dt > 0) dt -= 2 * Math.PI;
+  if (sweep && dt < 0) dt += 2 * Math.PI;
+  const n = Math.ceil(Math.abs(dt) / (Math.PI / 2));
+  const d = dt / n, k = (4 / 3) * Math.tan(d / 4);
+  const pt = (t) => [cx + rx * Math.cos(t) * cos - ry * Math.sin(t) * sin, cy + rx * Math.cos(t) * sin + ry * Math.sin(t) * cos];
+  const der = (t) => [-rx * Math.sin(t) * cos - ry * Math.cos(t) * sin, -rx * Math.sin(t) * sin + ry * Math.cos(t) * cos];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const a = t1 + i * d, b = a + d;
+    const [ax, ay] = pt(a), [bx, by] = pt(b), [dax, day] = der(a), [dbx, dby] = der(b);
+    out.push([ax + k * dax, ay + k * day, bx - k * dbx, by - k * dby, bx, by]);
+  }
+  return out;
+}
+
+// Line icons on a 24x24 grid, drawn with round strokes (original drawings).
+const ICONS = {
+  gauge: 'M3.5 16.5 A9 9 0 0 1 20.5 16.5 M12 16.5 L16.2 10.8 M6.4 12.2 L7.6 12.9 M12 7.6 L12 9 M17.6 12.2 L16.4 12.9',
+  check: 'M5 12.5 L10 17.5 L19.5 7',
+  'check-circle': 'M12 3 A9 9 0 1 1 11.99 3 M8 12.4 L11 15.4 L16.5 9.4',
+  home: 'M3.5 11 L12 4 L20.5 11 M6 9.5 L6 20 L18 20 L18 9.5 M10 20 L10 14.5 L14 14.5 L14 20',
+  tool: 'M15 4 A4.5 4.5 0 0 0 10.6 9.6 L4 16.2 L7.8 20 L14.4 13.4 A4.5 4.5 0 0 0 20 9 L16.8 12.2 L11.8 7.2 Z',
+  box: 'M4 7.5 L12 3.5 L20 7.5 L20 16.5 L12 20.5 L4 16.5 Z M4 7.5 L12 11.5 L20 7.5 M12 11.5 L12 20.5',
+  pin: 'M12 21 C 8 16.5, 5 13, 5 9.5 A7 7 0 0 1 19 9.5 C 19 13, 16 16.5, 12 21 Z M14.5 9.5 A2.5 2.5 0 1 1 14.49 9.4',
+  navigate: 'M20 4 L4 11 L11 13 L13 20 Z',
+  search: 'M16.5 10.5 A6 6 0 1 1 16.49 10.4 M15 15 L20 20',
+  team: 'M9 11 A3 3 0 1 1 9.01 11 M3.5 19.5 C 3.5 16, 6 14, 9 14 C 12 14, 14.5 16, 14.5 19.5 M16.5 10 A2.5 2.5 0 1 1 16.51 10 M16.5 13.5 C 19 13.5, 21 15, 21 18',
+  truck: 'M2.5 6.5 L14 6.5 L14 16.5 L2.5 16.5 Z M14 9.5 L18 9.5 L21 13 L21 16.5 L14 16.5 M8.5 18 A2 2 0 1 1 8.49 18 M18.5 18 A2 2 0 1 1 18.49 18',
+  clock: 'M21 12 A9 9 0 1 1 20.99 11.9 M12 7 L12 12 L15.5 14',
+  star: 'M12 3.5 L14.6 9 L20.5 9.6 L16 13.6 L17.3 19.5 L12 16.5 L6.7 19.5 L8 13.6 L3.5 9.6 L9.4 9 Z',
+  heart: 'M12 20 C 6 15.5, 3 12.5, 3 9 A4.5 4.5 0 0 1 12 7 A4.5 4.5 0 0 1 21 9 C 21 12.5, 18 15.5, 12 20 Z',
+  bolt: 'M13.5 2.5 L5 13.5 L11.5 13.5 L10.5 21.5 L19 10.5 L12.5 10.5 Z',
+  phone: 'M8 3 L16 3 A2 2 0 0 1 18 5 L18 19 A2 2 0 0 1 16 21 L8 21 A2 2 0 0 1 6 19 L6 5 A2 2 0 0 1 8 3 Z M11 18 L13 18',
+  mail: 'M3.5 6 L20.5 6 L20.5 18 L3.5 18 Z M3.5 6.5 L12 13 L20.5 6.5',
+  calendar: 'M4 6 L20 6 L20 20 L4 20 Z M4 10 L20 10 M8 3.5 L8 7.5 M16 3.5 L16 7.5',
+  'arrow-right': 'M4 12 L19.5 12 M13.5 6 L19.5 12 L13.5 18',
+  plus: 'M12 5 L12 19 M5 12 L19 12',
+  sparkle: 'M12 3 C 12.8 8.5, 15.5 11.2, 21 12 C 15.5 12.8, 12.8 15.5, 12 21 C 11.2 15.5, 8.5 12.8, 3 12 C 8.5 11.2, 11.2 8.5, 12 3 Z',
+  euro: 'M17.5 6.5 A7 7 0 1 0 17.5 17.5 M4 10.5 L13 10.5 M4 13.5 L13 13.5',
+  shield: 'M12 3 L19.5 6 L19.5 11.5 C 19.5 16, 16.5 19.5, 12 21 C 7.5 19.5, 4.5 16, 4.5 11.5 L4.5 6 Z M8.6 12 L11 14.4 L15.6 9.6',
+  play: 'M7 4.5 L19 12 L7 19.5 Z',
+  key: 'M10 14 A5 5 0 1 1 13.9 9.7 L21 9.7 L21 12.7 M18 9.7 L18 12.2',
+};
+
+// Parse an SVG path into absolute segments: M, L, C (quadratics and arcs become cubics).
 function parsePath(d) {
   const toks = String(d).match(/[MmLlHhVvCcSsQqTtAaZz]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g) || [];
   const segs = [];
@@ -52,7 +113,12 @@ function parsePath(d) {
       segs.push({ t: 'C', p: [x + (2 / 3) * (qx - x), y + (2 / 3) * (qy - y), ex + (2 / 3) * (qx - ex), ey + (2 / 3) * (qy - ey), ex, ey] });
       lqx = qx; lqy = qy; lcx = null; x = ex; y = ey; continue;
     }
-    if (C === 'A') { for (let k = 0; k < 5; k++) num(); x = ox + num(); y = oy + num(); segs.push({ t: 'L', p: [x, y] }); lcx = lqx = null; continue; }
+    if (C === 'A') {
+      const rx = num(), ry = num(), rot = num(), large = num(), sweep = num();
+      const ex = ox + num(), ey = oy + num();
+      for (const c of arcToCubics(x, y, rx, ry, rot, large, sweep, ex, ey)) segs.push({ t: 'C', p: c });
+      x = ex; y = ey; lcx = lqx = null; continue;
+    }
     i++; // unknown token
   }
   return segs;
@@ -97,10 +163,11 @@ function tracePath(ctx, segs) {
 const pathCache = new Map();
 // segments fitted to a w x h box: presets stretch, custom paths keep their aspect
 function fittedPath(L, w, h) {
-  const key = JSON.stringify([L.shape, L.d, L.viewBox, w, h]);
+  const key = JSON.stringify([L.shape, L.d, L.icon || L.name, L.viewBox, w, h]);
   if (pathCache.has(key)) return pathCache.get(key);
   let segs;
-  if (L.shape) segs = transformSegs(parsePath(PRESETS[L.shape]), (x, y) => [(x / 100) * w, (y / 100) * h]);
+  if (L.type === 'icon') { const sc = Math.min(w, h) / 24; segs = transformSegs(parsePath(ICONS[L.name || L.icon]), (x, y) => [(w - 24 * sc) / 2 + x * sc, (h - 24 * sc) / 2 + y * sc]); }
+  else if (L.shape) segs = transformSegs(parsePath(PRESETS[L.shape]), (x, y) => [(x / 100) * w, (y / 100) * h]);
   else {
     const raw = parsePath(L.d);
     const vb = L.viewBox ? { x0: L.viewBox[0], y0: L.viewBox[1], w: L.viewBox[2], h: L.viewBox[3] } : bounds(raw);
@@ -115,7 +182,23 @@ function fittedPath(L, w, h) {
 
 // ---------- keyframes ----------
 
-const KF_PROPS = ['x', 'y', 'scale', 'rotate', 'opacity'];
+const KF_PROPS = ['x', 'y', 'scale', 'rotate', 'opacity', 'w', 'h', 'r', 'radius', 'blur', 'rgb', 'size', 'color'];
+
+// colors: "#rgb", "#rrggbb", "#rrggbbaa", "rgb(...)", "rgba(...)"
+function parseColor(c) {
+  if (typeof c !== 'string') return null;
+  let m = /^#([0-9a-f]{3,8})$/i.exec(c.trim());
+  if (m) {
+    let h = m[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map((x) => x + x).join('');
+    const n = (i) => parseInt(h.slice(i, i + 2), 16);
+    return [n(0), n(2), n(4), h.length === 8 ? n(6) / 255 : 1];
+  }
+  m = /^rgba?\(([^)]+)\)$/i.exec(c.trim());
+  if (m) { const p = m[1].split(',').map((v) => parseFloat(v)); return [p[0], p[1], p[2], p[3] ?? 1]; }
+  return null;
+}
+const mixColor = (a, b, t) => { const A = parseColor(a), B = parseColor(b); if (!A || !B) return t < 0.5 ? a : b; const v = A.map((x, i) => x + (B[i] - x) * t); return `rgba(${Math.round(v[0])},${Math.round(v[1])},${Math.round(v[2])},${v[3].toFixed(3)})`; };
 
 // value of every keyframed property at local time lt (holds before the first and after the last)
 function keyframeValues(kfs, lt, resolve) {
@@ -129,7 +212,11 @@ function keyframeValues(kfs, lt, resolve) {
     if (lt >= last.t) { out[prop] = last.v; continue; }
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i], b = pts[i + 1];
-      if (lt >= a.t && lt <= b.t) { out[prop] = lerp(a.v, b.v, getEasing(b.easing || 'inOut')((lt - a.t) / Math.max(1e-6, b.t - a.t))); break; }
+      if (lt >= a.t && lt <= b.t) {
+        const q = getEasing(b.easing || 'inOut')((lt - a.t) / Math.max(1e-6, b.t - a.t));
+        out[prop] = prop === 'color' ? mixColor(a.v, b.v, q) : lerp(a.v, b.v, q);
+        break;
+      }
     }
   }
   return out;
@@ -157,7 +244,34 @@ function cursorState(L, lt, resolve) {
   return { x, y, press: clamp01(press), ripples };
 }
 
+function drawArrowPointer(ctx, L, st) {
+  const k = (L.size ?? 44) / 24;
+  ctx.save();
+  ctx.translate(st.x, st.y);
+  ctx.scale(k * (1 - 0.12 * st.press), k * (1 - 0.12 * st.press));
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, 17); ctx.lineTo(4.2, 13.2); ctx.lineTo(7, 19.5); ctx.lineTo(9.6, 18.4); ctx.lineTo(6.9, 12.3); ctx.lineTo(12.4, 12.3); ctx.closePath();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1.5;
+  ctx.fillStyle = L.color || '#000'; ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = 1.4; ctx.lineJoin = 'round'; ctx.strokeStyle = L.border || '#fff'; ctx.stroke();
+  ctx.restore();
+}
+
+// a loading spinner: an arc that spins and breathes
+function drawSpinner(ctx, L, lt) {
+  const r = (L.size ?? 48) / 2, w = L.strokeWidth ?? Math.max(2, r * 0.16);
+  const rot = lt * (L.speed ?? 1.4) * Math.PI * 2;
+  const span = Math.PI * (0.55 + 0.35 * Math.sin(lt * 3));
+  ctx.save();
+  ctx.lineCap = 'round'; ctx.lineWidth = w;
+  if (L.track !== false) { ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.strokeStyle = L.track || 'rgba(127,127,127,0.25)'; ctx.stroke(); }
+  ctx.beginPath(); ctx.arc(0, 0, r, rot, rot + span); ctx.strokeStyle = L.color || '#fff'; ctx.stroke();
+  ctx.restore();
+}
+
 function drawCursor(ctx, L, st) {
+  if (L.style === 'arrow' || L.style === 'pointer' || L.style === 'mouse') return drawArrowPointer(ctx, L, st);
   const r = L.size ? L.size / 2 : 26;
   ctx.save();
   ctx.translate(st.x, st.y);
@@ -165,7 +279,6 @@ function drawCursor(ctx, L, st) {
     ctx.beginPath();
     ctx.arc(0, 0, r * (1 + q * 1.6), 0, Math.PI * 2);
     ctx.strokeStyle = L.rippleColor || 'rgba(255,255,255,0.9)';
-    ctx.globalAlpha *= 1;
     ctx.lineWidth = r * 0.18 * (1 - q);
     ctx.save(); ctx.globalAlpha *= (1 - q) * 0.9; ctx.stroke(); ctx.restore();
   }
@@ -245,4 +358,4 @@ function drawStatusBar(ctx, L, s, theme) {
   ctx.restore();
 }
 
-module.exports = { PRESETS, parsePath, fittedPath, tracePath, keyframeValues, cursorState, drawCursor, phoneGeometry, drawPhoneBody, drawStatusBar, roundRectPath, PHONE };
+module.exports = { PRESETS, ICONS, drawSpinner, parsePath, fittedPath, tracePath, keyframeValues, cursorState, drawCursor, phoneGeometry, drawPhoneBody, drawStatusBar, roundRectPath, PHONE };

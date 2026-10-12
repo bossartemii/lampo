@@ -27,6 +27,10 @@ const enter = {
   stamp:     { duration: 0.42, easing: 'expoOut', apply: (s, p) => { s.opacity *= Math.min(1, Math.max(0, p) * 4); s.scale *= 1 + (1 - p) * 1.6; s.rotate += (1 - p) * -10; } },
   // draw: a path layer draws its stroke from start to end (on other layers it acts as a wipe)
   draw:      { duration: 0.8, easing: 'inOut', apply: (s, p) => { s.draw = Math.min(s.draw, Math.max(0, p)); } },
+  // glitch: a chromatic red/cyan split that jitters and settles (text)
+  glitch:    { duration: 0.55, easing: 'out', apply: (s, p) => { s.opacity *= Math.min(1, Math.max(0, p) * 3); s.rgb += (1 - p) * 18; s.dx += Math.sin(p * 95) * (1 - p) * 16; } },
+  // rush: flies in from the right with speed blur (cars, vans, products)
+  rush:      { duration: 0.75, easing: 'expoOut', apply: (s, p) => { s.dx += (1 - p) * 1500; s.blur += (1 - p) * 22; s.opacity *= Math.min(1, p * 4); } },
   slideUp:   { duration: 0.8, apply: (s, p) => { s.opacity *= Math.min(1, p * 2); s.dy += (1 - p) * 900; } },
   growUp:    { duration: 0.8, easing: 'inOut', apply: (s, p) => { s.scaleY *= p; s.origin = 'bottom'; } },
 
@@ -51,7 +55,7 @@ const loop = {
   breathe:  (s, t, o) => { const per = o.period ?? 2.4; s.opacity *= 0.75 + 0.25 * (0.5 + 0.5 * Math.sin((t / per) * Math.PI * 2)); },
 };
 
-const transitions = ['none', 'fade', 'slide', 'slideUp', 'push', 'zoom', 'wipe', 'blur'];
+const transitions = ['none', 'fade', 'slide', 'slideUp', 'push', 'zoom', 'wipe', 'blur', 'circle'];
 
 // For unit effects: when each unit starts and how long it lasts.
 function splitTiming(fx, opts, count) {

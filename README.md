@@ -129,10 +129,11 @@ Host it on any VPS (or try it with `cloudflared tunnel --url http://localhost:33
 
 - **Formats** 9:16, 1:1, 4:5, 16:9 or custom · 1–120 fps · draft / standard / high
 - **Layers** text (with `**highlights**`, gradients, stroke, pill buttons, auto-fit), counter (locale-aware), rect, circle, line, image, **video clips** (trim, slow motion, loop, rounded corners, optional clip audio)
+- **Motion design**: shapes that **morph** (dot → line → pill → app icon → full screen) with keyframed size, radius and color, circle takeovers, an **iris transition**, **RGB glitch** text, **25 line icons** (also inline with text), a loading **spinner**, `rush` speed-blur entrances
 - **App & website demos**: an iPhone mockup whose screen you lay out in real iPhone points, groups for cards/buttons/screens, a **touch cursor** that glides and taps with ripples, **keyframes** for camera moves and button presses, **hand-drawn paths** that draw themselves (underline, circle, arrow, check, any SVG), and a **stamp** effect
-- **23 enter/exit effects** incl. `stamp`, `draw`, `slideUp`, `rise` (keynote-style line masks), `wordsUp`, `letters`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`
+- **25 enter/exit effects** incl. `glitch`, `rush`, `stamp`, `draw`, `slideUp`, `rise` (keynote-style line masks), `wordsUp`, `letters`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`
 - **7 loops** float, pulse, rotate, kenburns, drift, shake, breathe · **9 easings** + cubic-bezier
-- **8 transitions** fade, slide, push, slideUp, zoom, wipe, blur, none
+- **9 transitions** fade, slide, push, slideUp, zoom, wipe, blur, circle (iris), none
 - **Backgrounds** solid, animated gradient, `glow` (soft drifting light), image with Ken Burns, **b-roll video**
 - **Sound effects** synthesized by Lampo and synced to the animations automatically (`"sfx": true`): whoosh, pop, tick, impact, boom, riser, ding and more — no audio files, no licensing
 - **Audio** with fades · **custom fonts** · **global layers** (logo, watermark) · vignette
@@ -144,6 +145,7 @@ Full reference: [`src/guide.md`](src/guide.md) · Examples: [`examples/`](exampl
 - [x] Sound effects synced to the animations
 - [x] Video clips as layers and b-roll backgrounds
 - [x] App & website demos: phone mockup, touch cursor, keyframes, hand-drawn paths
+- [x] Motion design: shape morphing, circle takeovers, glitch, icons, spinner
 - [ ] Auto-captions from audio (Whisper)
 - [ ] Template packs per industry (restaurants, real estate, gyms, SaaS)
 - [ ] **Lampo Cloud** — hosted MCP endpoint: no install, works in ChatGPT and Claude.ai, render on fast machines

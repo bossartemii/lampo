@@ -1,0 +1,1528 @@
+{
+ "format": "9:16",
+ "fps": 30,
+ "theme": {
+  "font": "Inter",
+  "color": "#0A0A0A",
+  "accent": "#0A0A0A",
+  "locale": "it-IT"
+ },
+ "sfx": true,
+ "sounds": [
+  {
+   "sound": "riser",
+   "at": 9.9,
+   "duration": 1.0,
+   "volume": 0.6
+  },
+  {
+   "sound": "boom",
+   "at": 11.1,
+   "volume": 0.7
+  }
+ ],
+ "scenes": [
+  {
+   "duration": 4.25,
+   "background": [
+    "#FFFFFF",
+    "#ECECEC"
+   ],
+   "layers": [
+    {
+     "text": "Veloce",
+     "size": 92,
+     "x": "50%",
+     "y": "40%",
+     "weight": 800,
+     "color": "#0A0A0A",
+     "icon": "gauge",
+     "iconScale": 0.62,
+     "end": 0.8,
+     "in": {
+      "effect": "fadeUp",
+      "duration": 0.35
+     }
+    },
+    {
+     "type": "group",
+     "x": "70%",
+     "y": "52%",
+     "w": 120,
+     "h": 120,
+     "start": 0.25,
+     "end": 0.66,
+     "keyframes": [
+      {
+       "t": 0,
+       "scale": 0.1
+      },
+      {
+       "t": 0.2,
+       "scale": 0.75,
+       "easing": "backOut"
+      },
+      {
+       "t": 0.41,
+       "scale": 1
+      }
+     ],
+     "layers": [
+      {
+       "type": "circle",
+       "r": 60,
+       "x": 60,
+       "y": 60,
+       "color": "#0A0A0A"
+      },
+      {
+       "type": "rect",
+       "x": 60,
+       "y": 60,
+       "w": 44,
+       "h": 11,
+       "anchor": "left",
+       "radius": 6,
+       "color": "#FFFFFF",
+       "keyframes": [
+        {
+         "t": 0,
+         "rotate": 160
+        },
+        {
+         "t": 0.4,
+         "rotate": 215,
+         "easing": "backOut"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "circle",
+     "x": "70%",
+     "y": "52%",
+     "r": 60,
+     "color": "#0A0A0A",
+     "start": 0.66,
+     "end": 1.95,
+     "keyframes": [
+      {
+       "t": 0,
+       "r": 60,
+       "x": "70%",
+       "y": "52%"
+      },
+      {
+       "t": 0.28,
+       "r": 1300,
+       "x": "50%",
+       "y": "50%",
+       "easing": "in"
+      },
+      {
+       "t": 0.85,
+       "r": 1300
+      },
+      {
+       "t": 1.12,
+       "r": 150,
+       "easing": "expoOut"
+      },
+      {
+       "t": 1.29,
+       "r": 22,
+       "x": "50%",
+       "y": "50%"
+      }
+     ]
+    },
+    {
+     "text": "Affidabile",
+     "size": 92,
+     "x": "50%",
+     "y": "44%",
+     "weight": 800,
+     "color": "#FFFFFF",
+     "icon": "check-circle",
+     "iconScale": 0.62,
+     "iconDraw": true,
+     "start": 0.92,
+     "end": 1.52,
+     "in": {
+      "effect": "fadeUp",
+      "duration": 0.3
+     }
+    },
+    {
+     "type": "circle",
+     "r": 11,
+     "x": "50%",
+     "y": "51%",
+     "color": "#FFFFFF",
+     "start": 1.0,
+     "end": 1.52,
+     "keyframes": [
+      {
+       "t": 0,
+       "y": "50%"
+      },
+      {
+       "t": 0.14,
+       "y": "52.4%",
+       "easing": "in"
+      },
+      {
+       "t": 0.28,
+       "y": "50.5%",
+       "easing": "out"
+      },
+      {
+       "t": 0.4,
+       "y": "52.4%",
+       "easing": "in"
+      },
+      {
+       "t": 0.52,
+       "y": "51.6%"
+      }
+     ]
+    },
+    {
+     "type": "rect",
+     "x": "50%",
+     "y": "50%",
+     "w": 44,
+     "h": 44,
+     "radius": 9999,
+     "color": "#0A0A0A",
+     "start": 1.95,
+     "end": 4.25,
+     "keyframes": [
+      {
+       "t": 0,
+       "w": 44,
+       "h": 44,
+       "radius": 22
+      },
+      {
+       "t": 0.22,
+       "w": 330,
+       "h": 7,
+       "radius": 4,
+       "easing": "expoOut"
+      },
+      {
+       "t": 0.42,
+       "w": 330,
+       "h": 7
+      },
+      {
+       "t": 0.62,
+       "w": 360,
+       "h": 104,
+       "radius": 10,
+       "easing": "expoOut"
+      },
+      {
+       "t": 1.25,
+       "w": 360,
+       "h": 104,
+       "radius": 10
+      },
+      {
+       "t": 1.5,
+       "w": 158,
+       "h": 158,
+       "radius": 40,
+       "easing": "backOut"
+      },
+      {
+       "t": 1.9,
+       "w": 158,
+       "h": 158,
+       "radius": 40,
+       "color": "#0A0A0A",
+       "y": "50%"
+      },
+      {
+       "t": 2.3,
+       "w": 560,
+       "h": 1000,
+       "radius": 70,
+       "color": "#9C9C9C",
+       "y": "50%",
+       "easing": "inOut"
+      }
+     ]
+    },
+    {
+     "text": "Artemii",
+     "size": 70,
+     "x": "50%",
+     "y": "50%",
+     "weight": 800,
+     "color": "#FFFFFF",
+     "start": 2.55,
+     "end": 4.25,
+     "wrap": false,
+     "in": {
+      "effect": "glitch",
+      "duration": 0.55
+     },
+     "keyframes": [
+      {
+       "t": 0.65,
+       "size": 70
+      },
+      {
+       "t": 0.9,
+       "size": 34,
+       "easing": "backOut"
+      },
+      {
+       "t": 1.3,
+       "size": 34
+      },
+      {
+       "t": 1.7,
+       "size": 150,
+       "easing": "inOut"
+      }
+     ]
+    },
+    {
+     "text": "Artemii Traslochi",
+     "size": 28,
+     "x": "50%",
+     "y": "55.6%",
+     "weight": 600,
+     "color": "#444",
+     "start": 3.25,
+     "end": 3.75,
+     "in": {
+      "effect": "fade",
+      "duration": 0.3
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.2
+     }
+    }
+   ]
+  },
+  {
+   "duration": 8.7,
+   "background": [
+    "#FFFFFF",
+    "#ECECEC"
+   ],
+   "transition": {
+    "type": "zoom",
+    "duration": 0.35
+   },
+   "layers": [
+    {
+     "text": "Di cosa hai bisogno?",
+     "size": 26,
+     "x": "50%",
+     "y": "45.6%",
+     "weight": 600,
+     "color": "#8A8A8A",
+     "end": 2.05,
+     "in": {
+      "effect": "fadeUp",
+      "duration": 0.35
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.2
+     }
+    },
+    {
+     "type": "group",
+     "x": "50%",
+     "y": "50%",
+     "w": 430,
+     "h": 92,
+     "radius": 46,
+     "bg": "#FFFFFF",
+     "end": 2.05,
+     "shadow": {
+      "color": "rgba(0,0,0,0.12)",
+      "blur": 40,
+      "y": 14
+     },
+     "in": {
+      "effect": "scaleIn",
+      "duration": 0.4
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.2
+     },
+     "keyframes": [
+      {
+       "t": 1.6,
+       "scale": 1
+      },
+      {
+       "t": 1.7,
+       "scale": 0.95
+      },
+      {
+       "t": 1.85,
+       "scale": 1
+      }
+     ],
+     "layers": [
+      {
+       "text": "Trasloco",
+       "size": 32,
+       "x": "50%",
+       "y": "50%",
+       "weight": 700,
+       "color": "#0A0A0A",
+       "icon": "home",
+       "iconScale": 0.7,
+       "end": 0.55,
+       "in": {
+        "effect": "fadeUp",
+        "duration": 0.3
+       },
+       "out": {
+        "effect": "fadeUp",
+        "duration": 0.2
+       }
+      },
+      {
+       "text": "Montaggio mobili",
+       "size": 32,
+       "x": "50%",
+       "y": "50%",
+       "weight": 700,
+       "color": "#0A0A0A",
+       "icon": "tool",
+       "iconScale": 0.7,
+       "start": 0.55,
+       "end": 1.05,
+       "in": {
+        "effect": "fadeUp",
+        "duration": 0.25
+       },
+       "out": {
+        "effect": "fadeUp",
+        "duration": 0.2
+       }
+      },
+      {
+       "text": "Sgombero",
+       "size": 32,
+       "x": "50%",
+       "y": "50%",
+       "weight": 700,
+       "color": "#0A0A0A",
+       "icon": "box",
+       "iconScale": 0.7,
+       "start": 1.05,
+       "end": 1.45,
+       "in": {
+        "effect": "fadeUp",
+        "duration": 0.25
+       },
+       "out": {
+        "effect": "fadeUp",
+        "duration": 0.2
+       }
+      },
+      {
+       "text": "Trasloco",
+       "size": 32,
+       "x": "50%",
+       "y": "50%",
+       "weight": 700,
+       "color": "#0A0A0A",
+       "icon": "home",
+       "iconScale": 0.7,
+       "start": 1.45,
+       "in": {
+        "effect": "fadeUp",
+        "duration": 0.25
+       }
+      }
+     ]
+    },
+    {
+     "type": "circle",
+     "r": 6,
+     "x": 520,
+     "y": "53.6%",
+     "color": "#C8C8C8",
+     "end": 2.05,
+     "keyframes": [
+      {
+       "t": 0.0,
+       "color": "#0A0A0A"
+      },
+      {
+       "t": 0.55,
+       "color": "#C8C8C8"
+      },
+      {
+       "t": 1.05,
+       "color": "#C8C8C8"
+      },
+      {
+       "t": 1.45,
+       "color": "#0A0A0A"
+      }
+     ]
+    },
+    {
+     "type": "circle",
+     "r": 6,
+     "x": 540,
+     "y": "53.6%",
+     "color": "#C8C8C8",
+     "end": 2.05,
+     "keyframes": [
+      {
+       "t": 0.0,
+       "color": "#C8C8C8"
+      },
+      {
+       "t": 0.55,
+       "color": "#0A0A0A"
+      },
+      {
+       "t": 1.05,
+       "color": "#C8C8C8"
+      },
+      {
+       "t": 1.45,
+       "color": "#C8C8C8"
+      }
+     ]
+    },
+    {
+     "type": "circle",
+     "r": 6,
+     "x": 560,
+     "y": "53.6%",
+     "color": "#C8C8C8",
+     "end": 2.05,
+     "keyframes": [
+      {
+       "t": 0.0,
+       "color": "#C8C8C8"
+      },
+      {
+       "t": 0.55,
+       "color": "#C8C8C8"
+      },
+      {
+       "t": 1.05,
+       "color": "#0A0A0A"
+      },
+      {
+       "t": 1.45,
+       "color": "#C8C8C8"
+      }
+     ]
+    },
+    {
+     "type": "cursor",
+     "style": "arrow",
+     "size": 52,
+     "start": 0.7,
+     "end": 2.05,
+     "in": "fade",
+     "path": [
+      {
+       "t": 0,
+       "x": 760,
+       "y": 1180
+      },
+      {
+       "t": 0.95,
+       "x": 560,
+       "y": 975,
+       "tap": true
+      },
+      {
+       "t": 1.3,
+       "x": 600,
+       "y": 1010
+      }
+     ]
+    },
+    {
+     "text": "Indirizzo",
+     "size": 40,
+     "x": 220,
+     "y": "45.4%",
+     "weight": 800,
+     "color": "#0A0A0A",
+     "anchor": "left",
+     "align": "left",
+     "start": 2.1,
+     "end": 4.0,
+     "in": {
+      "effect": "fadeUp",
+      "duration": 0.3
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.2
+     }
+    },
+    {
+     "type": "icon",
+     "name": "navigate",
+     "size": 30,
+     "x": 420,
+     "y": "45.4%",
+     "color": "#0A0A0A",
+     "start": 2.15,
+     "end": 4.0,
+     "in": "popIn",
+     "out": "fade"
+    },
+    {
+     "type": "group",
+     "x": "50%",
+     "y": "50.3%",
+     "w": 640,
+     "h": 96,
+     "radius": 18,
+     "bg": "#F5F5F5",
+     "start": 2.1,
+     "end": 4.0,
+     "shadow": {
+      "color": "rgba(0,0,0,0.08)",
+      "blur": 26,
+      "y": 8
+     },
+     "in": {
+      "effect": "fadeUp",
+      "duration": 0.35
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.2
+     },
+     "layers": [
+      {
+       "type": "icon",
+       "name": "pin",
+       "size": 34,
+       "x": 50,
+       "y": 48,
+       "color": "#333"
+      },
+      {
+       "text": "Via Milano 12, Brescia",
+       "size": 30,
+       "x": 92,
+       "y": 48,
+       "weight": 600,
+       "color": "#0A0A0A",
+       "anchor": "left",
+       "align": "left",
+       "wrap": false,
+       "end": 0.95,
+       "in": {
+        "effect": "typewriter",
+        "delay": 0.15,
+        "duration": 0.6
+       },
+       "out": {
+        "effect": "fade",
+        "duration": 0.15
+       }
+      },
+      {
+       "text": "Via Emilia, Reggio Emilia",
+       "size": 30,
+       "x": 92,
+       "y": 48,
+       "weight": 600,
+       "color": "#0A0A0A",
+       "anchor": "left",
+       "align": "left",
+       "wrap": false,
+       "start": 0.95,
+       "in": {
+        "effect": "typewriter",
+        "delay": 0.05,
+        "duration": 0.7
+       }
+      }
+     ]
+    },
+    {
+     "type": "cursor",
+     "style": "arrow",
+     "size": 52,
+     "start": 3.0,
+     "end": 4.0,
+     "in": "fade",
+     "path": [
+      {
+       "t": 0,
+       "x": 780,
+       "y": 1100
+      },
+      {
+       "t": 0.6,
+       "x": 690,
+       "y": 980,
+       "tap": true
+      }
+     ]
+    },
+    {
+     "type": "group",
+     "x": "50%",
+     "y": "50%",
+     "w": 720,
+     "h": 560,
+     "radius": 34,
+     "bg": "#FFFFFF",
+     "shadow": {
+      "color": "rgba(0,0,0,0.10)",
+      "blur": 50,
+      "y": 18
+     },
+     "layers": [
+      {
+       "text": "Il tuo trasloco",
+       "size": 46,
+       "x": 40,
+       "y": 74,
+       "weight": 800,
+       "color": "#0A0A0A",
+       "anchor": "left",
+       "align": "left",
+       "wrap": false
+      },
+      {
+       "text": "Ovunque con Artemii",
+       "size": 22,
+       "x": 40,
+       "y": 116,
+       "weight": 500,
+       "color": "#8A8A8A",
+       "anchor": "left",
+       "align": "left"
+      },
+      {
+       "type": "rect",
+       "x": 40,
+       "y": 160,
+       "w": 640,
+       "h": 92,
+       "anchor": "top-left",
+       "radius": 18,
+       "color": "#F6F6F6"
+      },
+      {
+       "type": "icon",
+       "name": "home",
+       "size": 30,
+       "x": 70,
+       "y": 206,
+       "color": "#555"
+      },
+      {
+       "text": "Partenza",
+       "size": 18,
+       "weight": 600,
+       "x": 96,
+       "y": 178,
+       "anchor": "left",
+       "align": "left",
+       "color": "#8A8A8A"
+      },
+      {
+       "text": "Via Milano 12, Brescia",
+       "size": 30,
+       "weight": 600,
+       "x": 96,
+       "y": 204,
+       "anchor": "left",
+       "align": "left",
+       "color": "#0A0A0A",
+       "wrap": false,
+       "caretColor": "#0A0A0A"
+      },
+      {
+       "type": "rect",
+       "x": 40,
+       "y": 270,
+       "w": 640,
+       "h": 92,
+       "anchor": "top-left",
+       "radius": 18,
+       "color": "#F6F6F6"
+      },
+      {
+       "type": "icon",
+       "name": "pin",
+       "size": 30,
+       "x": 70,
+       "y": 316,
+       "color": "#555"
+      },
+      {
+       "text": "Arrivo",
+       "size": 18,
+       "weight": 600,
+       "x": 96,
+       "y": 288,
+       "anchor": "left",
+       "align": "left",
+       "color": "#8A8A8A"
+      },
+      {
+       "text": "Via Emilia, Reggio Emilia",
+       "size": 30,
+       "weight": 600,
+       "x": 96,
+       "y": 314,
+       "anchor": "left",
+       "align": "left",
+       "color": "#0A0A0A",
+       "wrap": false,
+       "caretColor": "#0A0A0A"
+      },
+      {
+       "type": "group",
+       "x": 360,
+       "y": 470,
+       "w": 640,
+       "h": 92,
+       "radius": 16,
+       "bg": "#0A0A0A",
+       "keyframes": [
+        {
+         "t": 1.15,
+         "scale": 1
+        },
+        {
+         "t": 1.25,
+         "scale": 0.95
+        },
+        {
+         "t": 1.4,
+         "scale": 1
+        }
+       ],
+       "layers": [
+        {
+         "text": "Prenota",
+         "size": 30,
+         "x": "50%",
+         "y": "50%",
+         "weight": 700,
+         "color": "#FFFFFF",
+         "end": 1.3,
+         "out": {
+          "effect": "fade",
+          "duration": 0.1
+         }
+        },
+        {
+         "type": "spinner",
+         "size": 40,
+         "x": "50%",
+         "y": "50%",
+         "color": "#FFFFFF",
+         "track": "rgba(255,255,255,0.2)",
+         "start": 1.3,
+         "in": "fade"
+        }
+       ]
+      }
+     ],
+     "start": 4.0,
+     "end": 6.3,
+     "in": {
+      "effect": "scaleIn",
+      "duration": 0.45
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.2
+     }
+    },
+    {
+     "type": "group",
+     "x": 760,
+     "y": 690,
+     "w": 600,
+     "h": 300,
+     "scale": 0.42,
+     "start": 4.15,
+     "end": 6.3,
+     "in": {
+      "effect": "rush",
+      "duration": 0.6
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.2
+     },
+     "layers": [
+      {
+       "type": "rect",
+       "x": 20,
+       "y": 40,
+       "w": 400,
+       "h": 190,
+       "anchor": "top-left",
+       "radius": 26,
+       "color": [
+        "#FFFFFF",
+        "#D9D9D9"
+       ],
+       "shadow": {
+        "color": "rgba(0,0,0,0.18)",
+        "blur": 30,
+        "y": 14
+       }
+      },
+      {
+       "type": "path",
+       "d": "M0 0 L 90 0 C 120 0, 135 20, 150 50 L 175 95 C 182 108, 180 120, 180 130 L 180 150 L 0 150 Z",
+       "fill": [
+        "#F4F4F4",
+        "#CFCFCF"
+       ],
+       "strokeWidth": 0,
+       "w": 180,
+       "h": 150,
+       "x": 505,
+       "y": 155
+      },
+      {
+       "type": "path",
+       "d": "M10 6 L 72 6 C 90 6, 100 18, 110 40 L 120 62 L 10 62 Z",
+       "fill": "#2B2B2E",
+       "strokeWidth": 0,
+       "w": 110,
+       "h": 56,
+       "x": 520,
+       "y": 132
+      },
+      {
+       "type": "rect",
+       "x": 20,
+       "y": 200,
+       "w": 575,
+       "h": 34,
+       "anchor": "top-left",
+       "radius": 12,
+       "color": "#BDBDBD"
+      },
+      {
+       "type": "rect",
+       "x": 22,
+       "y": 150,
+       "w": 10,
+       "h": 26,
+       "anchor": "top-left",
+       "radius": 3,
+       "color": "#E03131"
+      },
+      {
+       "text": "Artemii",
+       "size": 54,
+       "weight": 800,
+       "x": 60,
+       "y": 112,
+       "anchor": "left",
+       "align": "left",
+       "color": "#1B1B1B",
+       "wrap": false
+      },
+      {
+       "text": "TRASLOCHI",
+       "size": 16,
+       "weight": 700,
+       "letterSpacing": 6,
+       "x": 62,
+       "y": 150,
+       "anchor": "left",
+       "align": "left",
+       "color": "#6B6B6B",
+       "wrap": false
+      },
+      {
+       "type": "circle",
+       "r": 46,
+       "x": 135,
+       "y": 236,
+       "color": "#1E1E1E"
+      },
+      {
+       "type": "circle",
+       "r": 20,
+       "x": 135,
+       "y": 236,
+       "color": "#A8A8A8"
+      },
+      {
+       "type": "circle",
+       "r": 46,
+       "x": 480,
+       "y": 236,
+       "color": "#1E1E1E"
+      },
+      {
+       "type": "circle",
+       "r": 20,
+       "x": 480,
+       "y": 236,
+       "color": "#A8A8A8"
+      }
+     ]
+    },
+    {
+     "type": "cursor",
+     "style": "arrow",
+     "size": 52,
+     "start": 4.5,
+     "end": 6.0,
+     "in": "fade",
+     "out": "fade",
+     "path": [
+      {
+       "t": 0,
+       "x": 760,
+       "y": 1300
+      },
+      {
+       "t": 0.75,
+       "x": 560,
+       "y": 1190,
+       "tap": true
+      },
+      {
+       "t": 1.2,
+       "x": 620,
+       "y": 1240
+      }
+     ]
+    },
+    {
+     "type": "group",
+     "x": "50%",
+     "y": "50%",
+     "w": 640,
+     "h": 310,
+     "radius": 22,
+     "bg": "#FFFFFF",
+     "shadow": {
+      "color": "rgba(0,0,0,0.10)",
+      "blur": 50,
+      "y": 18
+     },
+     "layers": [
+      {
+       "type": "circle",
+       "r": 36,
+       "x": 76,
+       "y": 76,
+       "color": "#FFFFFF",
+       "stroke": {
+        "color": "#C9D6E8",
+        "width": 3
+       }
+      },
+      {
+       "type": "icon",
+       "name": "team",
+       "size": 34,
+       "x": 76,
+       "y": 76,
+       "color": "#333"
+      },
+      {
+       "text": "Cerco la squadra",
+       "size": 40,
+       "x": 40,
+       "y": 160,
+       "weight": 800,
+       "color": "#0A0A0A",
+       "anchor": "left",
+       "align": "left",
+       "wrap": false,
+       "end": 1.0,
+       "out": {
+        "effect": "fade",
+        "duration": 0.1
+       }
+      },
+      {
+       "text": "Squadra trovata!!!",
+       "size": 40,
+       "x": 40,
+       "y": 160,
+       "weight": 800,
+       "color": "#0A0A0A",
+       "anchor": "left",
+       "align": "left",
+       "wrap": false,
+       "start": 1.0,
+       "in": {
+        "effect": "popIn",
+        "duration": 0.3
+       }
+      },
+      {
+       "text": "Troviamo la squadra più vicina",
+       "size": 21,
+       "x": 40,
+       "y": 202,
+       "weight": 500,
+       "color": "#8A8A8A",
+       "anchor": "left",
+       "align": "left"
+      },
+      {
+       "type": "rect",
+       "x": 40,
+       "y": 252,
+       "w": 560,
+       "h": 8,
+       "anchor": "top-left",
+       "radius": 4,
+       "color": "#E4E4E4"
+      },
+      {
+       "type": "rect",
+       "x": 40,
+       "y": 252,
+       "w": 560,
+       "h": 8,
+       "anchor": "top-left",
+       "radius": 4,
+       "color": "#1F5FA8",
+       "in": {
+        "effect": "grow",
+        "delay": 0.1,
+        "duration": 1.0
+       }
+      }
+     ],
+     "start": 6.3,
+     "end": 7.6,
+     "in": {
+      "effect": "fadeUp",
+      "duration": 0.35
+     },
+     "out": {
+      "effect": "fade",
+      "duration": 0.15
+     }
+    },
+    {
+     "type": "group",
+     "x": "50%",
+     "y": "50%",
+     "w": 640,
+     "h": 290,
+     "radius": 14,
+     "bg": "#FFFFFF",
+     "shadow": false,
+     "layers": [
+      {
+       "type": "rect",
+       "x": 0,
+       "y": 0,
+       "w": 640,
+       "h": 290,
+       "anchor": "top-left",
+       "radius": 14,
+       "color": "none",
+       "stroke": {
+        "color": "#0A0A0A",
+        "width": 5
+       }
+      },
+      {
+       "type": "circle",
+       "r": 30,
+       "x": 70,
+       "y": 76,
+       "color": "#7CB518",
+       "in": {
+        "effect": "popIn",
+        "duration": 0.35
+       }
+      },
+      {
+       "type": "icon",
+       "name": "check",
+       "size": 34,
+       "x": 70,
+       "y": 76,
+       "color": "#FFFFFF",
+       "strokeWidth": 2.6,
+       "in": {
+        "effect": "draw",
+        "delay": 0.15,
+        "duration": 0.3
+       }
+      },
+      {
+       "text": "Trasloco confermato",
+       "size": 42,
+       "x": 40,
+       "y": 164,
+       "weight": 800,
+       "color": "#0A0A0A",
+       "anchor": "left",
+       "align": "left",
+       "wrap": false
+      },
+      {
+       "type": "rect",
+       "x": 40,
+       "y": 222,
+       "w": 540,
+       "h": 9,
+       "anchor": "top-left",
+       "radius": 5,
+       "color": "#7CB518",
+       "in": {
+        "effect": "grow",
+        "delay": 0.15,
+        "duration": 0.6
+       }
+      }
+     ],
+     "start": 7.6,
+     "end": 8.7,
+     "in": {
+      "effect": "scaleIn",
+      "duration": 0.3
+     }
+    }
+   ]
+  },
+  {
+   "duration": 1.9,
+   "background": [
+    "#FFFFFF",
+    "#ECECEC"
+   ],
+   "transition": {
+    "type": "push",
+    "duration": 0.35
+   },
+   "layers": [
+    {
+     "type": "group",
+     "x": "50%",
+     "y": "47%",
+     "w": 600,
+     "h": 300,
+     "scale": 1.3,
+     "in": {
+      "effect": "rush",
+      "duration": 0.8
+     },
+     "layers": [
+      {
+       "type": "rect",
+       "x": 20,
+       "y": 40,
+       "w": 400,
+       "h": 190,
+       "anchor": "top-left",
+       "radius": 26,
+       "color": [
+        "#FFFFFF",
+        "#D9D9D9"
+       ],
+       "shadow": {
+        "color": "rgba(0,0,0,0.18)",
+        "blur": 30,
+        "y": 14
+       }
+      },
+      {
+       "type": "path",
+       "d": "M0 0 L 90 0 C 120 0, 135 20, 150 50 L 175 95 C 182 108, 180 120, 180 130 L 180 150 L 0 150 Z",
+       "fill": [
+        "#F4F4F4",
+        "#CFCFCF"
+       ],
+       "strokeWidth": 0,
+       "w": 180,
+       "h": 150,
+       "x": 505,
+       "y": 155
+      },
+      {
+       "type": "path",
+       "d": "M10 6 L 72 6 C 90 6, 100 18, 110 40 L 120 62 L 10 62 Z",
+       "fill": "#2B2B2E",
+       "strokeWidth": 0,
+       "w": 110,
+       "h": 56,
+       "x": 520,
+       "y": 132
+      },
+      {
+       "type": "rect",
+       "x": 20,
+       "y": 200,
+       "w": 575,
+       "h": 34,
+       "anchor": "top-left",
+       "radius": 12,
+       "color": "#BDBDBD"
+      },
+      {
+       "type": "rect",
+       "x": 22,
+       "y": 150,
+       "w": 10,
+       "h": 26,
+       "anchor": "top-left",
+       "radius": 3,
+       "color": "#E03131"
+      },
+      {
+       "text": "Artemii",
+       "size": 54,
+       "weight": 800,
+       "x": 60,
+       "y": 112,
+       "anchor": "left",
+       "align": "left",
+       "color": "#1B1B1B",
+       "wrap": false
+      },
+      {
+       "text": "TRASLOCHI",
+       "size": 16,
+       "weight": 700,
+       "letterSpacing": 6,
+       "x": 62,
+       "y": 150,
+       "anchor": "left",
+       "align": "left",
+       "color": "#6B6B6B",
+       "wrap": false
+      },
+      {
+       "type": "circle",
+       "r": 46,
+       "x": 135,
+       "y": 236,
+       "color": "#1E1E1E"
+      },
+      {
+       "type": "circle",
+       "r": 20,
+       "x": 135,
+       "y": 236,
+       "color": "#A8A8A8"
+      },
+      {
+       "type": "circle",
+       "r": 46,
+       "x": 480,
+       "y": 236,
+       "color": "#1E1E1E"
+      },
+      {
+       "type": "circle",
+       "r": 20,
+       "x": 480,
+       "y": 236,
+       "color": "#A8A8A8"
+      }
+     ]
+    },
+    {
+     "text": "Squadra in arrivo",
+     "size": 62,
+     "x": "50%",
+     "y": "59%",
+     "weight": 800,
+     "color": "#0A0A0A",
+     "in": {
+      "effect": "fadeUp",
+      "delay": 0.55
+     }
+    },
+    {
+     "text": "Ci vediamo all'indirizzo di partenza",
+     "size": 30,
+     "x": "50%",
+     "y": "63%",
+     "weight": 500,
+     "color": "#8A8A8A",
+     "in": {
+      "effect": "fade",
+      "delay": 0.8
+     }
+    }
+   ]
+  },
+  {
+   "duration": 1.25,
+   "background": "#000000",
+   "transition": {
+    "type": "circle",
+    "duration": 0.4
+   },
+   "layers": [
+    {
+     "type": "rect",
+     "x": 0,
+     "y": 0,
+     "w": 1080,
+     "h": 1920,
+     "anchor": "top-left",
+     "color": "#3C3C3C",
+     "keyframes": [
+      {
+       "t": 0,
+       "color": "#3C3C3C"
+      },
+      {
+       "t": 0.9,
+       "color": "#000000"
+      }
+     ]
+    },
+    {
+     "text": "Artemii",
+     "size": 150,
+     "x": "50%",
+     "y": "50%",
+     "weight": 800,
+     "color": "#BDBDBD",
+     "glow": "rgba(255,255,255,0.45)",
+     "in": {
+      "effect": "blurIn",
+      "duration": 0.6
+     },
+     "out": {
+      "effect": "blurIn",
+      "duration": 0.35
+     }
+    }
+   ]
+  },
+  {
+   "duration": 3.3,
+   "background": "#000000",
+   "transition": {
+    "type": "fade",
+    "duration": 0.3
+   },
+   "layers": [
+    {
+     "text": "ARTEMII",
+     "size": 168,
+     "x": "50%",
+     "y": "41%",
+     "weight": 900,
+     "letterSpacing": -6,
+     "color": "#FFFFFF",
+     "wrap": false,
+     "in": {
+      "effect": "fadeUp",
+      "duration": 0.5
+     }
+    },
+    {
+     "text": "TRASLOCHI",
+     "size": 44,
+     "x": "50%",
+     "y": "46.4%",
+     "weight": 700,
+     "letterSpacing": 22,
+     "color": "#FFFFFF",
+     "wrap": false,
+     "in": {
+      "effect": "letters",
+      "delay": 0.2
+     }
+    },
+    {
+     "type": "line",
+     "x": "50%",
+     "y": "50.2%",
+     "w": 120,
+     "h": 3,
+     "color": "#5A5A5A",
+     "in": {
+      "effect": "grow",
+      "delay": 0.5
+     }
+    },
+    {
+     "text": "Brescia · Modena · Reggio Emilia\n· Sassuolo · Correggio",
+     "size": 30,
+     "x": "50%",
+     "y": "55%",
+     "weight": 500,
+     "color": "#8C8C8C",
+     "lineHeight": 1.4,
+     "in": {
+      "effect": "fade",
+      "delay": 0.7
+     }
+    },
+    {
+     "type": "group",
+     "x": "50%",
+     "y": "64.5%",
+     "w": 560,
+     "h": 92,
+     "radius": 46,
+     "bg": "#FFFFFF",
+     "in": {
+      "effect": "scaleIn",
+      "delay": 0.9
+     },
+     "layers": [
+      {
+       "type": "icon",
+       "name": "search",
+       "size": 30,
+       "x": 54,
+       "y": 46,
+       "color": "#333"
+      },
+      {
+       "text": "@artemii.traslochi",
+       "size": 32,
+       "x": 90,
+       "y": 46,
+       "weight": 700,
+       "color": "#0A0A0A",
+       "anchor": "left",
+       "align": "left",
+       "wrap": false,
+       "caretColor": "#0A0A0A",
+       "in": {
+        "effect": "typewriter",
+        "delay": 0.35,
+        "duration": 1.0
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

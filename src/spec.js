@@ -7,7 +7,7 @@ const path = require('path');
 const { enter, loop, transitions } = require('./effects');
 const { easings } = require('./easing');
 const { SOUND_NAMES } = require('./sfx');
-const { PRESETS } = require('./shapes');
+const { PRESETS, ICONS } = require('./shapes');
 
 const FORMATS = {
   '9:16': [1080, 1920], reel: [1080, 1920], story: [1080, 1920], tiktok: [1080, 1920],
@@ -22,7 +22,7 @@ const QUALITY = {
   high:     { scale: 1,   crf: 16, preset: 'medium' },
 };
 
-const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'video', 'counter', 'line', 'path', 'group', 'phone', 'cursor'];
+const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'video', 'counter', 'line', 'path', 'icon', 'spinner', 'group', 'phone', 'cursor'];
 
 class SpecError extends Error {
   constructor(problems) {
@@ -107,6 +107,8 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
       if (!L.d && !L.shape) problems.push(`${where}: a path needs "shape" (${Object.keys(PRESETS).join(', ')}) or an SVG "d"`);
       if (L.shape && !PRESETS[L.shape]) problems.push(`${where}: shape "${L.shape}" does not exist. Shapes: ${Object.keys(PRESETS).join(', ')}`);
     }
+    if (L.type === 'icon' && !ICONS[L.name || L.icon]) problems.push(`${where}: icon "${L.name || L.icon}" does not exist. Icons: ${Object.keys(ICONS).join(', ')}`);
+    if (L.type === 'text' && L.icon && !ICONS[L.icon]) problems.push(`${where}.icon: "${L.icon}" does not exist. Icons: ${Object.keys(ICONS).join(', ')}`);
     if (L.type === 'cursor') {
       const pts = L.path || L.taps;
       if (!Array.isArray(pts) || !pts.length) problems.push(`${where}: a cursor needs "path": [{ "t": 0, "x": 200, "y": 400 }, { "t": 0.8, "x": 300, "y": 500, "tap": true }]`);

@@ -45,7 +45,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
 ```json
 { "duration": 3, "transition": "fade", "background": ..., "layers": [ ... ] }
 ```
-- `transition` (into this scene): none | fade | slide | push | slideUp | zoom | wipe | blur. Or `{ "type": "zoom", "duration": 0.6 }`. Overlaps the previous scene.
+- `transition` (into this scene): none | fade | slide | push | slideUp | zoom | wipe | blur | circle (iris from `origin: {x, y}`, default center). Or `{ "type": "zoom", "duration": 0.6 }`. Overlaps the previous scene.
 - `background`:
   - `"#101010"` solid
   - `["#1a0b02", "#3d1402"]` or `{ "type": "gradient", "colors": [...], "angle": 160, "animate": 10 }` (animate = degrees/sec)
@@ -54,7 +54,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
   - `{ "type": "video", "src": "broll.mp4", "overlay": "rgba(0,0,0,.35)", "trim": 2, "rate": 1, "loop": true, "audio": false }` — b-roll filling the frame (cover crop), text goes on top
 
 ## Layer (common keys)
-- `type`: text | counter | rect | circle | line | image | video | path | group | phone | cursor (inferred from `text` / `src` / `shape` / `path` / `layers` if omitted)
+- `type`: text | counter | rect | circle | line | image | video | path | icon | spinner | group | phone | cursor (inferred from `text` / `src` / `shape` / `path` / `layers` if omitted)
 - `x`, `y`: px in design space, `"50%"`, or `"center" | "left" | "right" | "top" | "bottom"`. Default: center.
 - `anchor`: center (default) | top | bottom | left | right | top-left | ...
 - `start`, `end` or `duration`: seconds relative to the scene (default: whole scene)
@@ -62,6 +62,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
 - `out`: exit effect, same names, played in reverse at the end of the layer
 - `loop`: `"float"` or `{ "effect": "pulse", "amount": 0.04, "period": 1.2 }` or an array
 - `opacity`, `scale`, `rotate`, `shadow: true`, `glow: "rgba(255,160,0,.6)"`
+- `keyframes` also morph shapes: `w`, `h`, `r` (circle), `radius`, `color`, `size` (text), `blur`, `rgb` (chromatic split). One rect can go dot → line → pill → app icon → full screen: `[{t:0,w:44,h:44,radius:22},{t:0.25,w:330,h:7,radius:4},{t:0.6,w:360,h:104,radius:10},{t:1.2,w:158,h:158,radius:40},{t:1.6,w:560,h:1000,color:"#9c9c9c"}]`. A circle whose `r` grows to ~1300 fills the screen (color takeover).
 - `keyframes`: move/zoom over time, e.g. `[{ "t": 2, "y": "60%", "scale": 1 }, { "t": 2.8, "y": "52%", "scale": 1.15 }]` (t = seconds from the layer start; props x, y, scale, rotate, opacity; optional `easing`). A quick press: `[{t:1.9,scale:1},{t:2,scale:0.93},{t:2.15,scale:1}]`.
 
 ### text
@@ -86,10 +87,17 @@ An iPhone mockup: `w` (default 600; height follows), `screen` (screen color, def
 Its `layers` are the screen content in **iPhone points: 390 wide, 844 tall** — design the app UI like a real phone. Typical pattern: several full-screen groups (`"x": 0, "y": 0, "w": 390, "h": 844, "anchor": "top-left"`) with `start`/`end`, each sliding in (`slideLeft`) as the next app screen; plus one `cursor` on top.
 
 ### cursor
-A touch finger: `path`: `[{ "t": 0, "x": 250, "y": 640 }, { "t": 1, "x": 283, "y": 352, "tap": true }, ...]` (t relative to the cursor's `start`, positions in the parent's coordinates). It glides between points and shows a press + ripple on each `tap` (with a click sound when `sfx` is on). `size` (default 52). Pair taps with a button `keyframes` press at the same time.
+A touch finger (or `"style": "arrow"` for a mouse pointer): `path`: `[{ "t": 0, "x": 250, "y": 640 }, { "t": 1, "x": 283, "y": 352, "tap": true }, ...]` (t relative to the cursor's `start`, positions in the parent's coordinates). It glides between points and shows a press + ripple on each `tap` (with a click sound when `sfx` is on). `size` (default 52). Pair taps with a button `keyframes` press at the same time.
 
 ### path
 Strokes that draw themselves with `in: "draw"`: `shape` = underline | double-underline | circle | arrow | arrow-curved | check | cross | strike | bracket | spark (hand-drawn, stretched to `w` x `h`), or any SVG `d` (scaled to fit `w` x `h`). `color`, `strokeWidth` (default 14), `fill` (for solid shapes/logos, with `strokeWidth: 0`).
+
+### icon
+Line icons drawn with round strokes: `name` = gauge, check, check-circle, home, tool, box, pin, navigate, search, team, truck, clock, star, heart, bolt, phone, mail, calendar, arrow-right, plus, sparkle, euro, shield, play, key. `size` (default 96), `color`, `strokeWidth` (default 2.1 on a 24 grid). `in: "draw"` draws it.
+Text can carry an icon in front: `{ "text": "Veloce", "icon": "gauge", "iconScale": 0.7, "iconDraw": true }`.
+
+### spinner
+A loading spinner: `size`, `color`, `track` (ring color or false), `speed`. Put it in a button after the tap to show "loading".
 
 ### rect / circle / line / image
 - rect: `w`, `h`, `radius`, `color` (or gradient array), `stroke`
@@ -98,7 +106,7 @@ Strokes that draw themselves with `in: "draw"`: `shape` = underline | double-und
 - image: `src` (local path or URL), `w`, `h`, `fit` (cover|contain), `radius`
 
 ## Effects
-Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, slideUp (from below the frame), scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp, stamp (slams down tilted, like a rubber stamp), draw (paths draw their stroke)
+Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, slideUp (from below the frame), scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp, stamp (slams down tilted, like a rubber stamp), draw (paths draw their stroke), glitch (red/cyan chromatic split that jitters and settles), rush (flies in from the right with speed blur — vans, cars, products)
 Text only (animate per unit): rise (lines slide up from a mask — keynote style), wordsUp, wordsPop, letters, typewriter
 Loops: float, pulse, rotate, kenburns, drift, shake, breathe
 Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, or a cubic-bezier array [x1,y1,x2,y2]
@@ -117,6 +125,7 @@ Synthesized by Lampo (no audio files, no licensing). Sounds: whoosh, swoosh, swi
 - CTA end card: brand name `letters` + `glow`, button = text with `bg` + `popIn` + `loop: pulse`.
 - B-roll: put the clip as the scene `background` with an `overlay` around 0.3–0.45 so white text stays readable; or as a rounded `video` layer next to the copy.
 - App / website demo (like a product walkthrough reel): warm light background, a `phone` that `slideUp`s in, screens as timed groups inside it, a `cursor` tapping buttons (button `keyframes` press at the tap time), `typewriter` text in input fields, a `stamp` group for the key promise, a `fadeDown` notification group above the phone, then an end card with the logo and a search bar typing the URL. See examples/it/artemii-preventivo.json.
+- Motion-design opener (minimal, black & white): short words with icons (`"icon": "gauge"`), a dot that grows into a circle and fills the screen (circle `r` keyframes) to flip to black, then one rect morphing dot → line → pill with the brand name (`in: "glitch"`) → app icon → opening app. Then the product flow in white cards, a `rush` van, and a black end card with a search bar typing the handle. See examples/it/artemii-app.json.
 - Hand-drawn emphasis: a `path` with `shape: "underline"` or `"circle"` and `in: "draw"` under/around the key word.
 - 9:16 safe zone: keep text between y 15% and 80%; captions/UI of TikTok/Reels cover the edges.
 - Turn on `"sfx": true` for social ads: sound makes motion feel twice as fast. Add a `riser` before the final reveal and a `boom` on the brand name.

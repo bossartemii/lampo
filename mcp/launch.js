@@ -24,8 +24,10 @@ if (!hasCanvas([ROOT]) && !hasCanvas([DATA])) {
   if (!fs.existsSync(path.join(DATA, 'package.json'))) fs.writeFileSync(path.join(DATA, 'package.json'), '{"name":"lampo-deps","private":true}');
   process.stderr.write(`[lampo] first run: installing the render engine in ${DATA}...\n`);
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const r = spawnSync(npm, ['install', '--no-audit', '--no-fund', '--omit=dev', ...DEPS], { cwd: DATA, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' });
-  if (r.status !== 0) process.stderr.write('[lampo] install failed: run "npm install" in the Lampo folder.\n');
+  const install = (pkg) => spawnSync(npm, ['install', '--no-audit', '--no-fund', '--omit=dev', pkg], { cwd: DATA, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' }).status === 0;
+  // the engine is required; the bundled ffmpeg is optional (no build for Android/Termux: use `pkg install ffmpeg`)
+  if (!install(DEPS[0])) process.stderr.write('[lampo] install failed: run "npm install" in the Lampo folder.\n');
+  if (!install(DEPS[1])) process.stderr.write('[lampo] bundled ffmpeg not available on this platform; using the system ffmpeg.\n');
 }
 
 const env = { ...process.env, NODE_PATH: [...nodePaths, process.env.NODE_PATH].filter(Boolean).join(path.delimiter) };

@@ -75,7 +75,7 @@ The comparison reproduces the underlying browser pipeline, not those tools thems
 
 ## Quick start
 
-Requires **Node 18+**. ffmpeg comes bundled (`ffmpeg-static`) or uses your system one.
+Requires **Node 18+**. ffmpeg comes bundled (`ffmpeg-static`) or uses your system one. On Android (Termux) run `pkg install nodejs ffmpeg` first.
 
 ```bash
 git clone https://github.com/bossartemii/lampo && cd lampo && npm install

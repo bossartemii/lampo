@@ -1,0 +1,78 @@
+{
+  "format": "9:16",
+  "theme": {
+    "font": "Inter",
+    "accent": "#64D2FF",
+    "locale": "en-US"
+  },
+  "sfx": true,
+  "scenes": [
+    {
+      "duration": 3.2,
+      "background": {
+        "type": "video",
+        "src": "media/abstract.mp4",
+        "overlay": "rgba(0,0,0,0.3)"
+      },
+      "layers": [
+        {
+          "text": "Your footage.",
+          "size": 125,
+          "weight": 900,
+          "y": "44%",
+          "in": "rise"
+        },
+        {
+          "text": "Lampo's **motion** on top.",
+          "size": 70,
+          "weight": 600,
+          "y": "55%",
+          "in": {
+            "effect": "wordsUp",
+            "delay": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3.4,
+      "transition": "zoom",
+      "background": "#050507",
+      "layers": [
+        {
+          "text": "Clips as layers",
+          "size": 90,
+          "weight": 800,
+          "y": "24%",
+          "in": "fadeUp"
+        },
+        {
+          "type": "video",
+          "src": "media/abstract.mp4",
+          "w": 860,
+          "h": 860,
+          "radius": 48,
+          "y": "55%",
+          "trim": 2,
+          "rate": 0.5,
+          "shadow": true,
+          "in": {
+            "effect": "scaleIn",
+            "delay": 0.2
+          }
+        },
+        {
+          "text": "trim \u00b7 slow motion \u00b7 rounded corners",
+          "size": 44,
+          "weight": 500,
+          "y": "82%",
+          "color": "#a1a1aa",
+          "in": {
+            "effect": "fade",
+            "delay": 0.6
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,8 @@ const { ffmpegPath } = require('../src/ffmpeg');
   const g = x.createLinearGradient(0, 0, 400, 300); g.addColorStop(0, '#ff375f'); g.addColorStop(1, '#0a84ff');
   x.fillStyle = g; x.fillRect(0, 0, 400, 300);
   fs.writeFileSync(path.join(dir, 'img.png'), await c.encode('png'));
+  // test clip with picture and sound
+  execFileSync(ffmpegPath(), ['-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=s=320x180:d=1.5:r=24', '-f', 'lavfi', '-i', 'sine=f=300:d=1.5', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', path.join(dir, 'clip.mp4')]);
   // test audio
   execFileSync(ffmpegPath(), ['-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=30', path.join(dir, 'a.mp3')]);
 
@@ -33,6 +35,9 @@ const { ffmpegPath } = require('../src/ffmpeg');
   });
   fx.loop.forEach((l, i) => scenes[i % scenes.length].layers.push({ type: 'counter', to: 1234.5, decimals: 1, prefix: '€ ', size: 50, y: '85%', loop: l }));
   scenes[1].layers.push({ text: 'manual', size: 40, y: '10%', sfx: { sound: 'chime', at: 0.1 } });
+  scenes[2].background = { type: 'video', src: 'clip.mp4', overlay: 'rgba(0,0,0,.3)' };
+  scenes[3].layers.push({ type: 'video', src: 'clip.mp4', w: 500, radius: 30, rate: 0.5, loop: false, audio: true, in: 'scaleIn' });
+  scenes[4].layers.push({ src: 'clip.mp4', w: 400, trim: 0.5, y: '70%' });
   const spec = { format: '1:1', fps: 24, quality: 'draft', audio: { src: 'a.mp3', volume: 0.5 }, sfx: true, sounds: [{ sound: 'riser', at: 0.2, duration: 0.8 }, { sound: 'boom', at: 1.0 }, { sound: 'glitch', at: 2 }, { sound: 'click', at: 2.5 }], scenes, layers: [{ text: 'LOGO', size: 30, x: 'right', y: 'top', anchor: 'top-right', in: 'fade' }] };
 
   // the spec must be valid
@@ -41,6 +46,8 @@ const { ffmpegPath } = require('../src/ffmpeg');
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ text: 'x', in: 'boh' }] }] }), /effect "boh" does not exist/);
   assert.throws(() => lampo.validate({ format: 'xx', scenes: [] }), /unknown format "xx"/);
   assert.throws(() => lampo.validate({ sounds: [{ sound: 'meow', at: 1 }], scenes: [{ duration: 1 }] }), /sound "meow" does not exist/);
+  assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'video', src: 'nope.mp4' }] }] }), /file not found/);
+  assert.strictEqual(s.scenes[4].layers[s.scenes[4].layers.length - 1].type, 'video');
   const sfx = require('../src/sfx');
   const events = sfx.buildEvents(s);
   for (const name of ['whoosh', 'pop', 'tick', 'chime', 'riser', 'boom', 'ding']) assert(events.some((e) => e.sound === name), `missing auto/manual sound ${name}`);

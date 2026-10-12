@@ -1,6 +1,6 @@
 {
   "name": "lampo-video",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Motion graphics from JSON, built for AI agents. Skia engine, no browser, parallel rendering. MCP server + skill for Claude, Gemini and ChatGPT.",
   "main": "index.js",
   "bin": {

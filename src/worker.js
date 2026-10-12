@@ -11,11 +11,13 @@ const { encoder } = require('./ffmpeg');
     const enc = encoder({ width: r.width, height: r.height, fps: spec.fps, out, ...spec.encode });
     let last = Date.now();
     for (let i = from; i < to; i++) {
+      if (r.hasVideo) await r.prepare(i / spec.fps);
       r.renderFrame(i);
       await enc.write(r.raw());
       if (Date.now() - last > 250) { parentPort.postMessage({ type: 'progress', done: i - from + 1 }); last = Date.now(); }
     }
     await enc.end();
+    r.close();
     parentPort.postMessage({ type: 'progress', done: to - from });
     parentPort.postMessage({ type: 'done' });
   } catch (e) {

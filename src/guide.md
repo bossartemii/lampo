@@ -30,9 +30,10 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
   - `["#1a0b02", "#3d1402"]` or `{ "type": "gradient", "colors": [...], "angle": 160, "animate": 10 }` (animate = degrees/sec)
   - `{ "type": "glow", "base": "#05050a", "colors": ["#0A84FF", "#BF5AF2"], "intensity": 0.55, "speed": 0.25 }` — soft moving light blobs, the "Apple keynote" look
   - `{ "type": "image", "src": "photo.jpg", "overlay": "rgba(0,0,0,.45)", "kenburns": true }`
+  - `{ "type": "video", "src": "broll.mp4", "overlay": "rgba(0,0,0,.35)", "trim": 2, "rate": 1, "loop": true, "audio": false }` — b-roll filling the frame (cover crop), text goes on top
 
 ## Layer (common keys)
-- `type`: text | counter | rect | circle | line | image (inferred from `text` / `src` if omitted)
+- `type`: text | counter | rect | circle | line | image | video (inferred from `text` / `src` if omitted)
 - `x`, `y`: px in design space, `"50%"`, or `"center" | "left" | "right" | "top" | "bottom"`. Default: center.
 - `anchor`: center (default) | top | bottom | left | right | top-left | ...
 - `start`, `end` or `duration`: seconds relative to the scene (default: whole scene)
@@ -49,6 +50,11 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
 
 ### counter
 Animated number: `from`, `to`, `prefix`, `suffix`, `decimals`, `locale` (default `theme.locale` or "en-US": 1,240.5; "it-IT": 1.240,5), `grouping: false`, `countDuration` (1.6s). Plus all text keys.
+
+### video
+A clip as a layer: `src` (mp4, mov, webm…), `w`, `h` (one is enough, the other follows the clip's aspect), `fit` (cover|contain), `radius`, `shadow`, `overlay` (tint on top),
+`trim` (start the clip at N seconds), `rate` (0.5 = slow motion, 2 = double speed), `loop` (true by default; false freezes on the last frame),
+`audio: true` or `volume: 0.6` to hear the clip's own sound (muted by default). All effects work on it (`in`, `out`, `loop` animations via `{ "effect": ... }`).
 
 ### rect / circle / line / image
 - rect: `w`, `h`, `radius`, `color` (or gradient array), `stroke`
@@ -74,6 +80,7 @@ Synthesized by Lampo (no audio files, no licensing). Sounds: whoosh, swoosh, swi
 - Keynote headline: 2–3 short lines, `rise`, weight 800, one `**accent**` word.
 - Number: `counter` + `popIn`, gradient color `["#FFD60A","#FF6B00"]`.
 - CTA end card: brand name `letters` + `glow`, button = text with `bg` + `popIn` + `loop: pulse`.
+- B-roll: put the clip as the scene `background` with an `overlay` around 0.3–0.45 so white text stays readable; or as a rounded `video` layer next to the copy.
 - 9:16 safe zone: keep text between y 15% and 80%; captions/UI of TikTok/Reels cover the edges.
 - Turn on `"sfx": true` for social ads: sound makes motion feel twice as fast. Add a `riser` before the final reveal and a `boom` on the brand name.
 - Stagger with `delay`, keep each scene 2.5–4s, transitions 0.5–0.7s, 3–5 scenes for a 10–15s ad.

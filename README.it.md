@@ -109,11 +109,11 @@ Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-
 
 ## Cosa c'è dentro
 - **Formati**: 9:16, 1:1, 4:5, 16:9 (o width/height a mano), 1–120 fps, qualità draft/standard/high
-- **Layer**: text (con `**evidenziato**`, gradiente, bordo, pillola/bottone), counter, rect, circle, line, image
+- **Layer**: text (con `**evidenziato**`, gradiente, bordo, pillola/bottone), counter, rect, circle, line, image, **clip video** (taglio iniziale, rallentatore, loop, angoli arrotondati, audio del clip a scelta)
 - **20 effetti** di entrata/uscita, tra cui `rise` (righe che salgono da una maschera, stile keynote), `wordsUp`, `letters`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`
 - **7 loop**: float, pulse, rotate, kenburns, drift, shake, breathe
 - **8 transizioni**: fade, slide, push, slideUp, zoom, wipe, blur, none
-- **Sfondi**: colore, gradiente animato, "glow" (luci morbide in movimento), immagine con Ken Burns
+- **Sfondi**: colore, gradiente animato, "glow" (luci morbide in movimento), immagine con Ken Burns, **video b-roll**
 - **Effetti sonori (SFX)** generati da Lampo e sincronizzati da soli con le animazioni (`"sfx": true`): whoosh, pop, tick, impact, boom, riser, ding e altri, senza file audio e senza problemi di diritti
 - **Audio** con fade in/out, **font personalizzati**, **layer globali** (logo/watermark), vignettatura
 - **JSON tollerante**: accetta commenti e virgole finali, errori tipici degli LLM
@@ -132,11 +132,11 @@ test/smoke.js  test con ogni effetto, transizione, immagine e audio
 
 ## Limiti attuali (v0.1)
 - Niente HTML/CSS arbitrario: è il prezzo della velocità. Per scene particolari serve un nuovo tipo di layer.
-- Niente video come layer (solo immagini) e niente sottotitoli automatici da audio, per ora.
+- Niente sottotitoli automatici da audio, per ora.
 - Il render distribuito su più macchine (tipo Remotion Lambda) non c'è: scala sui core di una macchina.
 
 ## Roadmap
-1. Layer video (clip del cliente sotto ai testi) e sottotitoli da audio con Whisper
+1. Sottotitoli automatici da audio con Whisper
 2. Template pronti per settore (ristoranti, barbieri, immobiliari, palestre)
 3. Render in cloud a pagamento via API: il modello di business
 

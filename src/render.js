@@ -8,6 +8,8 @@ const { normalize, parseLoose } = require('./spec');
 const { createRenderer } = require('./frame');
 const { run, ffmpegPath } = require('./ffmpeg');
 const sfx = require('./sfx');
+const video = require('./video');
+const { isVideoSrc } = require('./frame');
 
 function runWorker(spec, from, to, out, onProgress) {
   return new Promise((resolve, reject) => {
@@ -40,7 +42,17 @@ async function render(input, out, opts = {}) {
   const n = Math.max(1, Math.min(maxW, Math.floor(frames / spec.fps) || 1));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lampo-'));
   const withSfx = sfx.hasSfx(spec);
-  const silentOut = spec.audio || withSfx ? path.join(tmp, 'video.mp4') : out;
+  // clips that should be heard: "audio": true or a "volume" on a video layer / background
+  const clipAudio = [];
+  const wantAudio = (o) => o.audio === true || (typeof o.volume === 'number' && o.volume > 0);
+  for (const S of spec.scenes) {
+    const bg = S.background;
+    if (bg && typeof bg === 'object' && !Array.isArray(bg) && bg.src && (bg.type === 'video' || isVideoSrc(bg.src)) && wantAudio(bg)) clipAudio.push({ o: bg, at: S.start, dur: S.duration });
+    for (const L of S.layers) if (L.type === 'video' && wantAudio(L)) { const st = L.start ?? 0; const end = L.end ?? (L.duration != null ? st + L.duration : S.duration); clipAudio.push({ o: L, at: S.start + st, dur: end - st }); }
+  }
+  for (const L of spec.layers) if (L.type === 'video' && wantAudio(L)) { const st = L.start ?? 0; clipAudio.push({ o: L, at: st, dur: (L.end ?? (L.duration != null ? st + L.duration : spec.duration)) - st }); }
+  const heard = clipAudio.filter((c) => video.probe(c.o.src).hasAudio);
+  const silentOut = spec.audio || withSfx || heard.length ? path.join(tmp, 'video.mp4') : out;
 
   const done = new Array(n).fill(0);
   const report = () => opts.onProgress && opts.onProgress(done.reduce((a, b) => a + b, 0) / frames);
@@ -61,7 +73,7 @@ async function render(input, out, opts = {}) {
       fs.writeFileSync(list, parts.map((p) => `file '${p.file.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`).join('\n'));
       await run(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', silentOut]);
     }
-    if (spec.audio || withSfx) {
+    if (spec.audio || withSfx || heard.length) {
       const inputs = ['-i', silentOut];
       const chains = [];
       const labels = [];
@@ -72,6 +84,16 @@ async function render(input, out, opts = {}) {
         chains.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]afade=t=in:st=0:d=${a.fadeIn ?? 0.3},afade=t=out:st=${Math.max(0, spec.duration - fade)}:d=${fade},volume=${a.volume ?? 1}[music]`);
         labels.push('[music]');
       }
+      heard.forEach((c, k) => {
+        const info = video.probe(c.o.src);
+        const trim = c.o.trim ?? 0;
+        const len = Math.max(0.05, Math.min(c.dur, info.duration != null ? info.duration - trim : c.dur));
+        inputs.push('-ss', String(trim), '-t', len.toFixed(3), '-i', c.o.src);
+        const idx = inputs.filter((x) => x === '-i').length - 1;
+        const ms = Math.round(c.at * 1000);
+        chains.push(`[${idx}:a]aresample=44100,adelay=${ms}|${ms},volume=${c.o.volume ?? 1}[clip${k}]`);
+        labels.push(`[clip${k}]`);
+      });
       if (withSfx) {
         const wav = path.join(tmp, 'sfx.wav');
         fs.writeFileSync(wav, sfx.renderTrack(spec, sfx.buildEvents(spec)));
@@ -124,14 +146,16 @@ async function preview(input, out, opts = {}) {
   sx.fillStyle = '#18181b';
   sx.fillRect(0, 0, sheet.width, sheet.height);
   sx.font = '600 16px "Inter"';
-  times.forEach((t, i) => {
+  for (const [i, t] of times.entries()) {
+    if (r.hasVideo) await r.prepare(t);
     r.renderAt(t);
     const x = gap + (i % cols) * (r.width + gap);
     const y = gap + Math.floor(i / cols) * (r.height + gap + label);
     sx.drawImage(r.canvas, x, y + label);
     sx.fillStyle = '#a1a1aa';
     sx.fillText(`${t.toFixed(2)}s`, x + 2, y + 18);
-  });
+  }
+  r.close();
   out = path.resolve(out || 'preview.png');
   fs.writeFileSync(out, await sheet.encode('png'));
   return { file: out, times: times.map((t) => +t.toFixed(2)), duration: +spec.duration.toFixed(2) };
@@ -141,7 +165,10 @@ async function preview(input, out, opts = {}) {
 async function still(input, out, t, opts = {}) {
   const spec = normalize(input, { baseDir: opts.baseDir });
   const r = await createRenderer(spec);
-  r.renderAt(Math.max(0, Math.min(spec.duration, t)));
+  const tt = Math.max(0, Math.min(spec.duration, t));
+  if (r.hasVideo) await r.prepare(tt);
+  r.renderAt(tt);
+  r.close();
   out = path.resolve(out || 'frame.png');
   fs.writeFileSync(out, await r.canvas.encode('png'));
   return { file: out, time: t };

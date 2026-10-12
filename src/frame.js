@@ -3,7 +3,8 @@
 // every frame is a pure function of time, so rendering is deterministic
 // and can run in parallel across processes.
 
-const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts, ImageData } = require('@napi-rs/canvas');
+const video = require('./video');
 const { enter, loop, splitTiming } = require('./effects');
 const { getEasing, easings, clamp01, lerp } = require('./easing');
 
@@ -373,6 +374,24 @@ function drawImage(ctx, L, s, assets, scaleOut) {
   ctx.restore();
 }
 
+function drawVideo(ctx, L, s, item, scaleOut) {
+  if (!item || !item.ready) return;
+  const { w, h } = item.box;
+  const [ax, ay] = ANCHORS[L.anchor || 'center'] || ANCHORS.center;
+  const box = { x: -w * ax, y: -h * ay, w, h };
+  ctx.save();
+  applyTransform(ctx, s, box, scaleOut);
+  if (L.shadow || L.glow) {
+    ctx.save(); setShadow(ctx, L, scaleOut); ctx.fillStyle = '#000';
+    roundRect(ctx, box.x, box.y, box.w, box.h, L.radius ?? 0); ctx.fill(); ctx.restore();
+  }
+  roundRect(ctx, box.x, box.y, box.w, box.h, L.radius ?? 0);
+  ctx.clip();
+  ctx.drawImage(item.canvas, box.x, box.y, box.w, box.h);
+  if (L.overlay) { ctx.fillStyle = L.overlay; ctx.fillRect(box.x, box.y, box.w, box.h); }
+  ctx.restore();
+}
+
 function drawLayer(ctx, L, lt, win, env) {
   if (lt < 0 || lt > win.dur + 1e-6) return;
   const { s, split } = computeState(L, lt, win);
@@ -387,6 +406,7 @@ function drawLayer(ctx, L, lt, win, env) {
     const fin = layoutText(ctx, { ...L, wrap: false, text: formatNumber(L.to, L, env.theme) }, env.theme, env.spec);
     drawText(ctx, { ...L, wrap: false, fit: false, size: fin.fitSize ?? L.size, text: formatNumber(lerp(L.from ?? 0, L.to, p), L, env.theme) }, env.theme, env.spec, s, split, env.scaleOut, lt);
   } else if (L.type === 'image') drawImage(ctx, L, s, env.assets, env.scaleOut);
+  else if (L.type === 'video') drawVideo(ctx, L, s, env.videos.get(L), env.scaleOut);
   else drawShape(ctx, L, env.theme, s, env.scaleOut);
   ctx.restore();
 }
@@ -397,7 +417,7 @@ function drawBackground(ctx, bg, st, spec, env) {
   const W = spec.width, H = spec.height;
   bg = bg ?? env.theme.background;
   if (typeof bg === 'string' || Array.isArray(bg)) bg = Array.isArray(bg) ? { type: 'gradient', colors: bg } : { type: 'color', color: bg };
-  const type = bg.type || (bg.colors ? 'gradient' : bg.src ? 'image' : 'color');
+  const type = bg.type || (bg.colors ? 'gradient' : bg.src ? (isVideoSrc(bg.src) ? 'video' : 'image') : 'color');
   if (type === 'color') { ctx.fillStyle = bg.color || '#000'; ctx.fillRect(0, 0, W, H); return; }
   if (type === 'gradient') {
     const angle = (bg.angle ?? 160) + (bg.animate ? st * (typeof bg.animate === 'number' ? bg.animate : 20) : 0);
@@ -426,6 +446,17 @@ function drawBackground(ctx, bg, st, spec, env) {
       ctx.fillRect(0, 0, W, H);
     });
     ctx.restore();
+    return;
+  }
+  if (type === 'video') {
+    ctx.fillStyle = bg.base || '#000';
+    ctx.fillRect(0, 0, W, H);
+    const item = env.videos.get(bg);
+    if (item && item.ready) {
+      const z = bg.kenburns ? 1 + 0.08 * clamp01(st / Math.max(0.1, env.sceneDur)) : 1;
+      ctx.drawImage(item.canvas, (W - W * z) / 2, (H - H * z) / 2, W * z, H * z);
+    }
+    if (bg.overlay !== false) { ctx.fillStyle = bg.overlay || 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, W, H); }
     return;
   }
   if (type === 'image') {
@@ -458,6 +489,31 @@ function drawScene(ctx, S, t, env) {
   }
 }
 
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv|avi|gif)(\?|$)/i;
+function isVideoSrc(src) { return VIDEO_EXT.test(String(src)); }
+
+// every clip in the spec, each with its own decoder, sized for the output
+function setupVideos(spec, scaleOut) {
+  const items = new Map();
+  const add = (key, kind, opts, scene, boxDesign) => {
+    const info = video.probe(opts.src);
+    let { w, h } = boxDesign;
+    if (!w && !h) { w = info.width; h = info.height; }
+    else if (!w) w = (h * info.width) / info.height;
+    else if (!h) h = (w * info.height) / info.width;
+    const canvas = createCanvas(Math.max(2, Math.round(w * scaleOut)), Math.max(2, Math.round(h * scaleOut)));
+    const src = new video.VideoSource({ src: opts.src, width: canvas.width, height: canvas.height, fit: opts.fit || 'cover', fps: spec.fps, rate: opts.rate ?? 1 });
+    items.set(key, { kind, opts, scene, info, src, canvas, box: { w, h }, ready: false });
+  };
+  for (const S of spec.scenes) {
+    const bg = S.background;
+    if (bg && typeof bg === 'object' && !Array.isArray(bg) && bg.src && (bg.type === 'video' || isVideoSrc(bg.src))) add(bg, 'bg', bg, S, { w: spec.width, h: spec.height });
+    for (const L of S.layers) if (L.type === 'video') add(L, 'layer', L, S, { w: L.w, h: L.h });
+  }
+  for (const L of spec.layers) if (L.type === 'video') add(L, 'layer', L, null, { w: L.w, h: L.h });
+  return items;
+}
+
 async function loadAssets(spec) {
   for (const f of spec.fonts || []) GlobalFonts.registerFromPath(f.path, f.family);
   const srcs = new Set();
@@ -465,7 +521,7 @@ async function loadAssets(spec) {
   for (const S of spec.scenes) {
     S.layers.forEach(walk);
     const bg = S.background;
-    if (bg && typeof bg === 'object' && !Array.isArray(bg) && bg.src) srcs.add(bg.src);
+    if (bg && typeof bg === 'object' && !Array.isArray(bg) && bg.src && bg.type !== 'video' && !isVideoSrc(bg.src)) srcs.add(bg.src);
   }
   spec.layers.forEach(walk);
   const assets = new Map();
@@ -483,7 +539,7 @@ async function createRenderer(spec) {
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
   const offA = createCanvas(W, H), offB = createCanvas(W, H);
-  const env = { spec, theme: spec.theme, assets, scaleOut };
+  const env = { spec, theme: spec.theme, assets, scaleOut, videos: setupVideos(spec, scaleOut) };
 
   const renderSceneTo = (c, S, t) => {
     const x = c.getContext('2d');
@@ -541,14 +597,39 @@ async function createRenderer(spec) {
     return canvas;
   }
 
+  // fetch the video frames needed at time t (async), before the sync drawing
+  async function prepare(t) {
+    for (const [, it] of env.videos) {
+      const S = it.scene;
+      const sceneStart = S ? S.start : 0;
+      const sceneDur = S ? S.duration : spec.duration;
+      const visibleScene = !S || (t >= S.start - 1e-6 && t <= S.end + 1e-6);
+      let lt = t - sceneStart;
+      let on = visibleScene;
+      if (it.kind === 'layer') {
+        const win = layerWindow(it.opts, sceneDur);
+        lt -= win.start;
+        on = on && lt >= -1e-6 && lt <= win.dur + 1e-6;
+      }
+      if (!on) { it.ready = false; continue; }
+      const buf = await it.src.frameAt(video.clipTimeFor(it.opts, it.info, lt));
+      const img = new ImageData(new Uint8ClampedArray(buf.buffer, buf.byteOffset, buf.length), it.canvas.width, it.canvas.height);
+      it.canvas.getContext('2d').putImageData(img, 0, 0);
+      it.ready = true;
+    }
+  }
+
   return {
     canvas,
     width: W,
     height: H,
+    hasVideo: env.videos.size > 0,
+    prepare,
     renderAt,
     renderFrame: (i) => renderAt(i / spec.fps),
     raw: () => canvas.data(),
+    close: () => { for (const [, it] of env.videos) it.src.stop(); },
   };
 }
 
-module.exports = { createRenderer, layoutText };
+module.exports = { createRenderer, layoutText, isVideoSrc };

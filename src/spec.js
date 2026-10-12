@@ -2,6 +2,7 @@
 // Normalizes and validates the video spec. Errors are written for an AI agent:
 // they say what is wrong and how to fix it, so it gets fixed on the first retry.
 
+const fs = require('fs');
 const path = require('path');
 const { enter, loop, transitions } = require('./effects');
 const { easings } = require('./easing');
@@ -20,7 +21,7 @@ const QUALITY = {
   high:     { scale: 1,   crf: 16, preset: 'medium' },
 };
 
-const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'counter', 'line'];
+const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'video', 'counter', 'line'];
 
 class SpecError extends Error {
   constructor(problems) {
@@ -79,6 +80,9 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     spec.scenes = [];
   }
 
+  const checkFile = (f, where) => {
+    if (f && !/^(data:|https?:)/.test(f) && !fs.existsSync(f)) problems.push(`${where}: file not found: ${f}`);
+  };
   const checkSound = (v, where) => {
     if (v == null || typeof v === 'boolean' || v === 'auto') return;
     const name = typeof v === 'string' ? v : v.sound || v.name || v.effect;
@@ -89,10 +93,14 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
   spec.sounds.forEach((x, i) => { checkSound(x, `sounds[${i}]`); if (!(x.at >= 0)) problems.push(`sounds[${i}]: "at" (seconds) is required`); });
 
   const checkLayer = (L, where) => {
-    if (!L.type) L.type = L.text != null ? 'text' : L.src ? 'image' : 'rect';
+    if (!L.type) L.type = L.text != null ? 'text' : L.src ? (/\.(mp4|mov|m4v|webm|mkv|avi)(\?|$)/i.test(L.src) ? 'video' : 'image') : 'rect';
     if (!LAYER_TYPES.includes(L.type)) problems.push(`${where}: type "${L.type}" does not exist. Types: ${LAYER_TYPES.join(', ')}`);
     if (L.type === 'text' && (L.text == null || L.text === '')) problems.push(`${where}: a text layer needs "text"`);
-    if (L.type === 'image') { if (!L.src) problems.push(`${where}: an image layer needs "src"`); else L.src = resolve(L.src); }
+    if (L.type === 'image' || L.type === 'video') {
+      if (!L.src) problems.push(`${where}: an ${L.type} layer needs "src"`);
+      else { L.src = resolve(L.src); checkFile(L.src, where); }
+    }
+    if (L.type === 'video' && L.rate != null && !(L.rate > 0)) problems.push(`${where}: "rate" must be > 0 (0.5 = slow motion, 2 = double speed)`);
     if (L.type === 'counter' && L.to == null) problems.push(`${where}: a counter needs "to" (and optionally "from")`);
     for (const k of ['in', 'out']) {
       try { L[k] = fxOpts(L[k], k); } catch (e) { problems.push(`${where}.${k}: ${e.message}`); L[k] = null; }
@@ -100,6 +108,8 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
       if (L[k] && enter[L[k].effect]?.split && !['text', 'counter'].includes(L.type)) problems.push(`${where}.${k}: "${L[k].effect}" only works on text and counter layers`);
       if (L[k] && L[k].easing && typeof L[k].easing === 'string' && !easings[L[k].easing]) problems.push(`${where}.${k}: easing "${L[k].easing}" does not exist. Use: ${Object.keys(easings).join(', ')}`);
     }
+    // on a video, "loop": true/false means "repeat the clip", not a loop animation
+    if (L.type === 'video' && typeof L.loop === 'boolean') { L.clipLoop = L.loop; delete L.loop; }
     checkSound(L.sfx, `${where}.sfx`);
     const loops = L.loop == null ? [] : Array.isArray(L.loop) ? L.loop : [L.loop];
     L.loop = loops.map((x) => fxOpts(x, 'loop'));
@@ -121,7 +131,7 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     S.end = S.start + S.duration;
     cursor = S.end;
     checkSound(S.sfx, `${where}.sfx`);
-    if (S.background && typeof S.background === 'object' && !Array.isArray(S.background) && S.background.src) S.background = { ...S.background, src: resolve(S.background.src) };
+    if (S.background && typeof S.background === 'object' && !Array.isArray(S.background) && S.background.src) { S.background = { ...S.background, src: resolve(S.background.src) }; checkFile(S.background.src, `${where}.background`); }
     S.layers = S.layers || [];
     S.layers.forEach((L, j) => checkLayer(L, `${where}.layers[${j}]`));
   });

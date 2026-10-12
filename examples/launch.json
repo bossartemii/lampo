@@ -1,0 +1,196 @@
+{
+  "format": "16:9",
+  "theme": {
+    "font": "Inter",
+    "color": "#ffffff",
+    "accent": "#0A84FF",
+    "locale": "en-US"
+  },
+  "scenes": [
+    {
+      "duration": 3,
+      "background": {
+        "type": "glow",
+        "base": "#020205",
+        "colors": [
+          "#0A84FF",
+          "#BF5AF2",
+          "#30D158"
+        ],
+        "intensity": 0.45
+      },
+      "layers": [
+        {
+          "text": "Introducing",
+          "size": 64,
+          "weight": 500,
+          "y": "38%",
+          "color": "#a1a1aa",
+          "in": "fade"
+        },
+        {
+          "text": "Nimbus",
+          "size": 260,
+          "weight": 900,
+          "y": "54%",
+          "color": [
+            "#ffffff",
+            "#9ec5ff"
+          ],
+          "in": "blurIn"
+        }
+      ]
+    },
+    {
+      "duration": 3.4,
+      "transition": "push",
+      "background": "#050507",
+      "layers": [
+        {
+          "text": "Your notes,\nthinking **with you**.",
+          "size": 116,
+          "weight": 800,
+          "x": 160,
+          "y": "50%",
+          "anchor": "left",
+          "align": "left",
+          "maxWidth": 1150,
+          "in": "rise"
+        },
+        {
+          "type": "rect",
+          "x": 1500,
+          "y": "50%",
+          "w": 420,
+          "h": 780,
+          "radius": 64,
+          "color": [
+            "#1c1c22",
+            "#0b0b10"
+          ],
+          "stroke": {
+            "color": "#2c2c35",
+            "width": 4
+          },
+          "in": {
+            "effect": "slideLeft",
+            "delay": 0.3
+          },
+          "loop": {
+            "effect": "float",
+            "amount": 10,
+            "period": 4
+          }
+        },
+        {
+          "type": "circle",
+          "x": 1500,
+          "y": 470,
+          "r": 90,
+          "color": [
+            "#0A84FF",
+            "#5E5CE6"
+          ],
+          "in": {
+            "effect": "popIn",
+            "delay": 0.7
+          }
+        },
+        {
+          "type": "line",
+          "x": 1500,
+          "y": 640,
+          "w": 260,
+          "h": 22,
+          "color": "#3a3a44",
+          "in": {
+            "effect": "grow",
+            "delay": 0.9
+          }
+        },
+        {
+          "type": "line",
+          "x": 1500,
+          "y": 690,
+          "w": 200,
+          "h": 22,
+          "color": "#3a3a44",
+          "in": {
+            "effect": "grow",
+            "delay": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3,
+      "transition": "zoom",
+      "background": "#050507",
+      "layers": [
+        {
+          "type": "counter",
+          "from": 0,
+          "to": 25000,
+          "suffix": "+",
+          "size": 220,
+          "weight": 900,
+          "y": "45%",
+          "color": [
+            "#64D2FF",
+            "#0A84FF"
+          ],
+          "in": "popIn"
+        },
+        {
+          "text": "teams already on the waitlist",
+          "size": 64,
+          "weight": 500,
+          "y": "61%",
+          "color": "#a1a1aa",
+          "in": {
+            "effect": "fadeUp",
+            "delay": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3,
+      "transition": "fade",
+      "background": {
+        "type": "glow",
+        "base": "#020205",
+        "colors": [
+          "#0A84FF",
+          "#BF5AF2"
+        ],
+        "intensity": 0.4
+      },
+      "layers": [
+        {
+          "text": "Nimbus",
+          "size": 180,
+          "weight": 900,
+          "y": "44%",
+          "in": "letters"
+        },
+        {
+          "text": "Get early access",
+          "size": 56,
+          "weight": 700,
+          "y": "62%",
+          "color": "#000",
+          "bg": {
+            "color": "#ffffff",
+            "radius": 50,
+            "padding": 30
+          },
+          "in": {
+            "effect": "popIn",
+            "delay": 0.8
+          }
+        }
+      ]
+    }
+  ]
+}

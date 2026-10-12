@@ -1,0 +1,235 @@
+{
+  "format": "9:16",
+  "theme": {
+    "font": "Inter",
+    "color": "#f5f5f4",
+    "accent": "#D4AF37",
+    "locale": "it-IT"
+  },
+  "vignette": true,
+  "scenes": [
+    {
+      "duration": 2.8,
+      "background": {
+        "type": "glow",
+        "base": "#080706",
+        "colors": [
+          "#D4AF37",
+          "#7C4A1E"
+        ],
+        "intensity": 0.4,
+        "speed": 0.35
+      },
+      "layers": [
+        {
+          "text": "NUOVO",
+          "size": 70,
+          "weight": 600,
+          "letterSpacing": 24,
+          "y": "36%",
+          "color": "#D4AF37",
+          "in": "fade"
+        },
+        {
+          "text": "Look.",
+          "size": 230,
+          "weight": 900,
+          "y": "45.5%",
+          "in": "zoomOut"
+        },
+        {
+          "text": "Stessa sedia, nuova versione di te.",
+          "size": 54,
+          "weight": 500,
+          "y": "55%",
+          "color": "#a8a29e",
+          "maxWidth": 900,
+          "in": {
+            "effect": "wordsUp",
+            "delay": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3.4,
+      "transition": "wipe",
+      "background": "#0c0a09",
+      "layers": [
+        {
+          "text": "Listino",
+          "size": 96,
+          "weight": 800,
+          "y": "31%",
+          "in": "fadeUp"
+        },
+        {
+          "type": "rect",
+          "w": 860,
+          "h": 120,
+          "radius": 28,
+          "y": "40%",
+          "color": "#1c1917",
+          "in": "slideLeft"
+        },
+        {
+          "text": "Taglio + barba",
+          "size": 58,
+          "weight": 700,
+          "x": 170,
+          "y": "40%",
+          "anchor": "left",
+          "in": {
+            "effect": "fade",
+            "delay": 0.2
+          }
+        },
+        {
+          "text": "25 €",
+          "size": 58,
+          "weight": 800,
+          "x": 910,
+          "y": "40%",
+          "anchor": "right",
+          "color": "#D4AF37",
+          "in": {
+            "effect": "popIn",
+            "delay": 0.35
+          }
+        },
+        {
+          "type": "rect",
+          "w": 860,
+          "h": 120,
+          "radius": 28,
+          "y": "48%",
+          "color": "#1c1917",
+          "in": {
+            "effect": "slideLeft",
+            "delay": 0.25
+          }
+        },
+        {
+          "text": "Sfumatura",
+          "size": 58,
+          "weight": 700,
+          "x": 170,
+          "y": "48%",
+          "anchor": "left",
+          "in": {
+            "effect": "fade",
+            "delay": 0.45
+          }
+        },
+        {
+          "text": "18 €",
+          "size": 58,
+          "weight": 800,
+          "x": 910,
+          "y": "48%",
+          "anchor": "right",
+          "color": "#D4AF37",
+          "in": {
+            "effect": "popIn",
+            "delay": 0.6
+          }
+        },
+        {
+          "type": "rect",
+          "w": 860,
+          "h": 120,
+          "radius": 28,
+          "y": "56%",
+          "color": "#1c1917",
+          "in": {
+            "effect": "slideLeft",
+            "delay": 0.5
+          }
+        },
+        {
+          "text": "Barba a caldo",
+          "size": 58,
+          "weight": 700,
+          "x": 170,
+          "y": "56%",
+          "anchor": "left",
+          "in": {
+            "effect": "fade",
+            "delay": 0.7
+          }
+        },
+        {
+          "text": "12 €",
+          "size": 58,
+          "weight": 800,
+          "x": 910,
+          "y": "56%",
+          "anchor": "right",
+          "color": "#D4AF37",
+          "in": {
+            "effect": "popIn",
+            "delay": 0.85
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3.4,
+      "transition": "blur",
+      "background": {
+        "type": "glow",
+        "base": "#080706",
+        "colors": [
+          "#D4AF37",
+          "#3f2a14"
+        ],
+        "intensity": 0.35
+      },
+      "layers": [
+        {
+          "text": "Officina\ndel Pettine",
+          "size": 120,
+          "weight": 900,
+          "y": "42%",
+          "in": "rise",
+          "glow": "rgba(212,175,55,0.35)"
+        },
+        {
+          "text": "Prenota su WhatsApp",
+          "size": 56,
+          "weight": 700,
+          "y": "60%",
+          "color": "#0c0a09",
+          "bg": {
+            "color": [
+              "#F4D77A",
+              "#D4AF37"
+            ],
+            "radius": 60,
+            "padding": 34
+          },
+          "in": {
+            "effect": "popIn",
+            "delay": 0.9
+          },
+          "loop": {
+            "effect": "pulse",
+            "amount": 0.025,
+            "delay": 1.5
+          }
+        },
+        {
+          "text": "Via Milano 12 · Brescia",
+          "size": 44,
+          "weight": 500,
+          "y": "69%",
+          "color": "#a8a29e",
+          "in": {
+            "effect": "fadeUp",
+            "delay": 1.3
+          }
+        }
+      ]
+    }
+  ]
+}

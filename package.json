@@ -1,0 +1,62 @@
+{
+  "name": "lampo-video",
+  "version": "0.1.0",
+  "description": "Motion graphics from JSON, built for AI agents. Skia engine, no browser, parallel rendering. MCP server + skill for Claude, Gemini and ChatGPT.",
+  "main": "index.js",
+  "bin": {
+    "lampo": "cli/lampo.js",
+    "lampo-mcp": "mcp/launch.js"
+  },
+  "files": [
+    "index.js",
+    "cli",
+    "src",
+    "mcp",
+    "examples",
+    "skills",
+    ".claude-plugin",
+    ".mcp.json",
+    "gemini-extension.json",
+    "GEMINI.md",
+    "README.md",
+    "LICENSE",
+    "README.it.md"
+  ],
+  "scripts": {
+    "preview": "node cli/lampo.js preview examples/coffee.json",
+    "render": "node cli/lampo.js render examples/coffee.json",
+    "mcp": "node mcp/server.js",
+    "test": "node test/smoke.js"
+  },
+  "keywords": [
+    "video",
+    "motion-graphics",
+    "mcp",
+    "ai-agent",
+    "claude",
+    "gemini",
+    "chatgpt",
+    "remotion-alternative",
+    "hyperframes-alternative"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.100"
+  },
+  "optionalDependencies": {
+    "ffmpeg-static": "^5.2.0"
+  },
+  "license": "Apache-2.0",
+  "author": "Dimitri Artemii",
+  "homepage": "https://github.com/bossartemii/lampo#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bossartemii/lampo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bossartemii/lampo/issues"
+  },
+  "funding": "https://github.com/sponsors/bossartemii"
+}

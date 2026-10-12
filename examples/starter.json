@@ -1,0 +1,23 @@
+{
+  "format": "9:16",
+  "theme": { "font": "Inter", "accent": "#0A84FF" },
+  "scenes": [
+    {
+      "duration": 3,
+      "background": { "type": "glow", "colors": ["#0A84FF", "#BF5AF2"] },
+      "layers": [
+        { "text": "Your **headline**", "size": 150, "weight": 900, "in": "blurIn" },
+        { "text": "One line that explains it", "size": 64, "weight": 500, "y": "57%", "in": { "effect": "wordsUp", "delay": 0.5 } }
+      ]
+    },
+    {
+      "duration": 3,
+      "transition": "zoom",
+      "background": "#0b0b0f",
+      "layers": [
+        { "text": "Call\nto action", "size": 130, "weight": 800, "in": "rise" },
+        { "text": "Learn more →", "size": 56, "y": "62%", "color": "#000", "bg": { "color": "#ffffff", "radius": 50 }, "in": { "effect": "popIn", "delay": 0.8 } }
+      ]
+    }
+  ]
+}

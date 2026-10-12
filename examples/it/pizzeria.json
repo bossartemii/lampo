@@ -1,0 +1,178 @@
+{
+  "format": "9:16",
+  "fps": 30,
+  "theme": {
+    "font": "Inter",
+    "color": "#ffffff",
+    "accent": "#FF9F0A",
+    "locale": "it-IT"
+  },
+  "vignette": true,
+  "scenes": [
+    {
+      "duration": 3,
+      "background": {
+        "type": "glow",
+        "base": "#0b0603",
+        "colors": [
+          "#FF6B00",
+          "#FF2D55",
+          "#FFB800"
+        ]
+      },
+      "layers": [
+        {
+          "text": "Fame?",
+          "size": 220,
+          "weight": 900,
+          "y": "44%",
+          "in": "blurIn",
+          "loop": "pulse"
+        },
+        {
+          "text": "Ci pensiamo **noi**.",
+          "size": 78,
+          "weight": 600,
+          "y": "56%",
+          "in": {
+            "effect": "wordsUp",
+            "delay": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3.2,
+      "transition": "zoom",
+      "background": {
+        "type": "gradient",
+        "colors": [
+          "#1a0b02",
+          "#3d1402"
+        ],
+        "angle": 160,
+        "animate": 8
+      },
+      "layers": [
+        {
+          "text": "Pizza napoletana\ncotta nel forno\na **legna**",
+          "size": 104,
+          "weight": 800,
+          "y": "46%",
+          "in": "rise",
+          "out": "fade"
+        },
+        {
+          "type": "line",
+          "w": 360,
+          "h": 10,
+          "y": "62%",
+          "in": {
+            "effect": "grow",
+            "delay": 0.9
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3,
+      "transition": "push",
+      "background": "#0d0d0d",
+      "layers": [
+        {
+          "type": "counter",
+          "from": 0,
+          "to": 20,
+          "suffix": " min",
+          "size": 240,
+          "weight": 900,
+          "y": "44%",
+          "color": [
+            "#FFD60A",
+            "#FF6B00"
+          ],
+          "in": "popIn"
+        },
+        {
+          "text": "consegna a casa tua",
+          "size": 70,
+          "weight": 500,
+          "y": "55%",
+          "color": "#d4d4d8",
+          "in": {
+            "effect": "fadeUp",
+            "delay": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3.5,
+      "transition": "blur",
+      "background": {
+        "type": "glow",
+        "base": "#070302",
+        "colors": [
+          "#FF6B00",
+          "#FF2D55"
+        ],
+        "intensity": 0.45
+      },
+      "layers": [
+        {
+          "text": "DA GINO",
+          "size": 150,
+          "weight": 900,
+          "letterSpacing": 12,
+          "y": "40%",
+          "in": "letters",
+          "glow": "rgba(255,159,10,0.6)"
+        },
+        {
+          "text": "Pizzeria · Brescia",
+          "size": 60,
+          "weight": 500,
+          "y": "48%",
+          "color": "#e4e4e7",
+          "in": {
+            "effect": "fade",
+            "delay": 0.7
+          }
+        },
+        {
+          "text": "Ordina ora  →",
+          "size": 64,
+          "weight": 700,
+          "y": "63%",
+          "color": "#111111",
+          "bg": {
+            "color": "#FF9F0A",
+            "radius": 60,
+            "padding": 34
+          },
+          "in": {
+            "effect": "popIn",
+            "delay": 1.1
+          },
+          "loop": {
+            "effect": "pulse",
+            "amount": 0.03,
+            "delay": 1.7
+          }
+        },
+        {
+          "text": "030 123 4567",
+          "size": 52,
+          "weight": 600,
+          "y": "72%",
+          "color": "#a1a1aa",
+          "in": {
+            "effect": "typewriter",
+            "delay": 1.5,
+            "duration": 0.9
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "format": "9:16",
+  "theme": {
+    "font": "Inter",
+    "color": "#fff7ed",
+    "accent": "#F59E0B",
+    "locale": "en-US"
+  },
+  "vignette": true,
+  "scenes": [
+    {
+      "duration": 2.8,
+      "background": {
+        "type": "glow",
+        "base": "#0c0704",
+        "colors": [
+          "#B45309",
+          "#F59E0B",
+          "#7C2D12"
+        ],
+        "intensity": 0.5
+      },
+      "layers": [
+        {
+          "text": "Monday?",
+          "size": 190,
+          "weight": 900,
+          "y": "44%",
+          "in": "zoomOut"
+        },
+        {
+          "text": "We've got **you**.",
+          "size": 80,
+          "weight": 600,
+          "y": "55%",
+          "in": {
+            "effect": "wordsUp",
+            "delay": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3.2,
+      "transition": "push",
+      "background": {
+        "type": "gradient",
+        "colors": [
+          "#1c0f06",
+          "#2a1609"
+        ],
+        "angle": 160,
+        "animate": 6
+      },
+      "layers": [
+        {
+          "text": "Single-origin\nbeans, roasted\n**this morning**",
+          "size": 104,
+          "weight": 800,
+          "y": "46%",
+          "in": "rise"
+        },
+        {
+          "type": "line",
+          "w": 320,
+          "h": 10,
+          "y": "61%",
+          "in": {
+            "effect": "grow",
+            "delay": 0.9
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3,
+      "transition": "zoom",
+      "background": "#0d0a08",
+      "layers": [
+        {
+          "type": "counter",
+          "from": 0,
+          "to": 1240,
+          "suffix": " cups",
+          "size": 170,
+          "weight": 900,
+          "y": "44%",
+          "color": [
+            "#FDE68A",
+            "#F59E0B"
+          ],
+          "in": "popIn"
+        },
+        {
+          "text": "served every week",
+          "size": 66,
+          "weight": 500,
+          "y": "54%",
+          "color": "#d6d3d1",
+          "in": {
+            "effect": "fadeUp",
+            "delay": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "duration": 3.4,
+      "transition": "blur",
+      "background": {
+        "type": "glow",
+        "base": "#0c0704",
+        "colors": [
+          "#F59E0B",
+          "#7C2D12"
+        ],
+        "intensity": 0.4
+      },
+      "layers": [
+        {
+          "text": "North Bean",
+          "size": 140,
+          "weight": 900,
+          "letterSpacing": 2,
+          "y": "40%",
+          "in": "letters",
+          "glow": "rgba(245,158,11,0.5)"
+        },
+        {
+          "text": "Coffee Roasters · Portland",
+          "size": 54,
+          "weight": 500,
+          "y": "48%",
+          "color": "#e7e5e4",
+          "in": {
+            "effect": "fade",
+            "delay": 0.7
+          }
+        },
+        {
+          "text": "Order ahead  →",
+          "size": 62,
+          "weight": 700,
+          "y": "62%",
+          "color": "#1c1917",
+          "bg": {
+            "color": [
+              "#FDE68A",
+              "#F59E0B"
+            ],
+            "radius": 60,
+            "padding": 34
+          },
+          "in": {
+            "effect": "popIn",
+            "delay": 1.1
+          },
+          "loop": {
+            "effect": "pulse",
+            "amount": 0.03,
+            "delay": 1.7
+          }
+        }
+      ]
+    }
+  ]
+}

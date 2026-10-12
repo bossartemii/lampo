@@ -1,0 +1,18 @@
+{
+  "name": "lampo",
+  "displayName": "Lampo",
+  "version": "0.1.0",
+  "description": "Fast videos from JSON for AI agents: ads, reels, motion graphics. Skia engine, no browser, parallel render.",
+  "author": {
+    "name": "Dimitri Artemii"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "video",
+    "motion-graphics",
+    "ads",
+    "reels"
+  ],
+  "homepage": "https://github.com/bossartemii/lampo",
+  "repository": "https://github.com/bossartemii/lampo"
+}

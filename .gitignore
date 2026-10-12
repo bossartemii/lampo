@@ -1,0 +1,6 @@
+node_modules/
+out/
+lampo-out/
+*.mp4
+
+!docs/media/*.mp4

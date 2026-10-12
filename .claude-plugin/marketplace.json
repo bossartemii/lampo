@@ -1,0 +1,14 @@
+{
+  "name": "lampo",
+  "description": "Lampo: fast videos from JSON for AI agents",
+  "owner": {
+    "name": "Dimitri Artemii"
+  },
+  "plugins": [
+    {
+      "name": "lampo",
+      "source": "./",
+      "description": "Fast videos from JSON for AI agents"
+    }
+  ]
+}

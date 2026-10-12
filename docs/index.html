@@ -36,7 +36,11 @@
   .top nav { display: flex; gap: 22px; align-items: center; font-size: 16px; }
   .top nav a { color: var(--ink); text-decoration: none; }
   .top nav a:hover { text-decoration: underline; }
-  .gh { border: 1.5px solid var(--ink); border-radius: 999px; padding: 6px 14px; font-weight: 600; }
+  .gh { border: 1.5px solid var(--ink); border-radius: 999px; padding: 6px 6px 6px 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+  .gh .star { width: 15px; height: 15px; fill: currentColor; }
+  .gh .count { background: var(--ink); color: #fff; border-radius: 999px; padding: 2px 10px; font: 600 14px var(--mono); min-width: 2ch; text-align: center; transition: background-color .4s, color .4s; }
+  .gh .count.bump { background: var(--bolt); color: var(--ink); }
+  .gh:not(:has(.count:not([hidden]))) { padding-right: 14px; }
 
   /* hero: the spec and the video it produced, side by side */
   .hero { padding: 40px 0 72px; }
@@ -120,7 +124,7 @@
       <a href="#speed">Speed</a>
       <a href="#install">Install</a>
       <a href="https://github.com/bossartemii/lampo/blob/main/src/guide.md">Docs</a>
-      <a class="gh" href="https://github.com/bossartemii/lampo">Star on GitHub</a>
+      <a class="gh" href="https://github.com/bossartemii/lampo" aria-label="Star Lampo on GitHub"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>Star<span class="count" data-stars hidden></span></a>
     </nav>
   </header>
 
@@ -249,7 +253,7 @@ npx lampo render my-ad.json</div>
         <p class="sub">Use it in client work, ship it inside your product, fork it. If it saves you hours, help it keep going.</p>
       </div>
       <ul>
-        <li><strong>Star the repository</strong>It's how other developers find it. <a href="https://github.com/bossartemii/lampo">github.com/bossartemii/lampo</a></li>
+        <li><strong>Star the repository</strong><span data-stars-line hidden>Starred by <b data-stars></b> developers so far. </span>It's how other developers find it. <a href="https://github.com/bossartemii/lampo">github.com/bossartemii/lampo</a></li>
         <li><strong>Sponsor the work</strong>Funds new effects, video layers and captions. <a href="https://github.com/sponsors/bossartemii">GitHub Sponsors</a></li>
         <li><strong>Need custom templates?</strong>Brand-matched templates and hosted rendering for teams. <a href="https://github.com/bossartemii/lampo/issues/new?title=Custom%20templates&labels=business">Get in touch</a></li>
       </ul>
@@ -276,6 +280,38 @@ npx lampo render my-ad.json</div>
     requestAnimationFrame(sync);
   }
   requestAnimationFrame(sync);
+
+  // live GitHub star count: public API, refreshed every 90 s while the tab is visible
+  (function () {
+    const API = 'https://api.github.com/repos/bossartemii/lampo';
+    const KEY = 'lampo-stars';
+    let current = null;
+    const show = (n, animate) => {
+      document.querySelectorAll('[data-stars]').forEach((el) => {
+        el.textContent = n.toLocaleString('en-US');
+        el.hidden = false;
+        if (animate && el.classList.contains('count')) { el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 1200); }
+      });
+      document.querySelectorAll('[data-stars-line]').forEach((el) => (el.hidden = n < 1));
+    };
+    try { const cached = parseInt(localStorage.getItem(KEY), 10); if (cached >= 0) { current = cached; show(cached, false); } } catch (e) {}
+    async function refresh() {
+      if (document.hidden) return;
+      try {
+        const r = await fetch(API, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+        if (!r.ok) return;
+        const n = (await r.json()).stargazers_count;
+        if (typeof n !== 'number') return;
+        const changed = current !== null && n !== current;
+        current = n;
+        show(n, changed);
+        try { localStorage.setItem(KEY, String(n)); } catch (e) {}
+      } catch (e) { /* offline or rate-limited: keep the last known value */ }
+    }
+    refresh();
+    setInterval(refresh, 90000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  })();
 
   // copy install command
   document.getElementById('copy').addEventListener('click', async (e) => {

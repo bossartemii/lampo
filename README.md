@@ -7,6 +7,8 @@ Ads, reels, TikToks, product launches and animated titles — rendered in second
 
 Works as a **Claude Code plugin**, a **Gemini CLI extension**, an **MCP server** (Claude Desktop, Cursor, Codex, ChatGPT) and a **CLI / Node library**.
 
+[![GitHub stars](https://img.shields.io/github/stars/bossartemii/lampo?style=social)](https://github.com/bossartemii/lampo/stargazers) &nbsp; [![License](https://img.shields.io/badge/license-Apache%202.0-black)](LICENSE)
+
 [Quick start](#quick-start) · [Why it's fast](#why-its-fast) · [Spec reference](src/guide.md) · [Examples](examples/) · [Italiano](README.it.md)
 
 <img src="media/coffee.gif" height="420" alt="9:16 coffee shop ad made with Lampo"> &nbsp; <img src="media/launch.gif" height="236" alt="16:9 product launch made with Lampo">

@@ -1,0 +1,7 @@
+node_modules
+lampo-out
+.git
+*.mp4
+*.png
+*.mp3
+keys.json

@@ -20,17 +20,14 @@
     "GEMINI.md",
     "README.md",
     "LICENSE",
-    "README.it.md",
-    "!mcp/server.js.backup",
-    "!mcp/server.js.pre-cloud",
-    "!mcp/server.js.before-hardening-20261013-210157",
-    "!mcp/server.js.pre-limits-20261013-210425"
+    "README.it.md"
   ],
   "scripts": {
     "preview": "node cli/lampo.js preview examples/coffee.json",
     "render": "node cli/lampo.js render examples/coffee.json",
     "mcp": "node mcp/server.js",
-    "test": "node test/smoke.js"
+    "test": "node test/smoke.js",
+    "keys": "node cli/keys.js"
   },
   "keywords": [
     "video",

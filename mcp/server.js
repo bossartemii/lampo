@@ -20,6 +20,27 @@ const GUIDE = fs.readFileSync(path.join(__dirname, '../src/guide.md'), 'utf8');
 const OUT_DIR = path.resolve(process.env.LAMPO_OUT || path.join(process.cwd(), 'lampo-out'));
 const PUBLIC_URL = process.env.LAMPO_PUBLIC_URL || null; // public HTTPS base URL
 const FILE_SECRET = process.env.LAMPO_FILE_SECRET || '';
+const KEYS_FILE = path.resolve(process.env.LAMPO_KEYS_FILE || path.join(process.cwd(), 'keys.json'));
+const BILLING_URL = process.env.LAMPO_BILLING_URL || 'https://github.com/sponsors/bossartemii';
+
+function loadKeys() {
+  try { return JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8')); }
+  catch { return {}; }
+}
+function saveKeys(keys) {
+  fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2) + '\n');
+}
+function cleanOldFiles(maxAgeSec = 1800) {
+  if (!fs.existsSync(OUT_DIR)) return;
+  const now = Date.now();
+  for (const f of fs.readdirSync(OUT_DIR)) {
+    if (!f.endsWith('.mp4')) continue;
+    const full = path.join(OUT_DIR, f);
+    try {
+      if (now - fs.statSync(full).mtimeMs > maxAgeSec * 1000) fs.rmSync(full, { force: true });
+    } catch {}
+  }
+}
 
 const specProp = {
   description: 'The video spec as a JSON object (see lampo_guide). A JSON string is also accepted.',
@@ -107,7 +128,7 @@ function validateCloudSpec(input, baseDir) {
   return s;
 }
 
-async function callTool(name, args = {}) {
+async function callTool(name, args = {}, auth = { master: true }) {
   const baseDir = process.cwd();
   const heavy = httpMode && ['lampo_preview', 'lampo_still', 'lampo_render'].includes(name);
   if (heavy && cloudBusy) {
@@ -141,8 +162,27 @@ async function callTool(name, args = {}) {
         return { content: [{ type: 'image', data, mimeType: 'image/png' }] };
       }
       case 'lampo_render': {
+        if (httpMode && !auth.master) {
+          const keys = loadKeys();
+          const record = keys[auth.token];
+          if (!record || typeof record.credits !== 'number' || record.credits < 1) {
+            return { isError: true, content: [{ type: 'text', text: `Crediti esauriti (0 rimasti). Ricarica qui: ${BILLING_URL}` }] };
+          }
+        }
+        cleanOldFiles();
         const file = outPath(httpMode ? `video-${crypto.randomUUID()}.mp4` : args.output, '.mp4');
         const r = await render(toSpec(args.spec), file, { baseDir, quality: args.quality });
+        if (httpMode && !auth.master) {
+          const keys = loadKeys();
+          const record = keys[auth.token];
+          if (record) {
+            record.credits = Math.max(0, (record.credits || 0) - 1);
+            record.used = (record.used || 0) + 1;
+            record.lastUsedAt = new Date().toISOString();
+            saveKeys(keys);
+            r.creditsLeft = record.credits;
+          }
+        }
         if (httpMode && PUBLIC_URL) {
           const name = path.basename(file);
           const expires = Math.floor(Date.now() / 1000) + 900;
@@ -163,7 +203,7 @@ async function callTool(name, args = {}) {
   }
 }
 
-async function handle(msg) {
+async function handle(msg, auth) {
   const { id, method, params } = msg;
   const reply = (result) => (id === undefined ? null : { jsonrpc: '2.0', id, result });
   const fail = (code, message) => (id === undefined ? null : { jsonrpc: '2.0', id, error: { code, message } });
@@ -180,7 +220,7 @@ async function handle(msg) {
     case 'tools/list':
       return reply({ tools: TOOLS });
     case 'tools/call':
-      return reply(await callTool(params?.name, params?.arguments));
+      return reply(await callTool(params?.name, params?.arguments, auth));
     case 'resources/list':
       return reply({ resources: [] });
     case 'prompts/list':
@@ -191,9 +231,9 @@ async function handle(msg) {
   }
 }
 
-async function handleAny(body) {
-  if (Array.isArray(body)) return (await Promise.all(body.map(handle))).filter(Boolean);
-  return handle(body);
+async function handleAny(body, auth) {
+  if (Array.isArray(body)) return (await Promise.all(body.map(m => handle(m, auth)))).filter(Boolean);
+  return handle(body, auth);
 }
 
 // ---------- stdio ----------
@@ -267,7 +307,14 @@ function startHttp(port) {
       return stream.pipe(res);
     }
     if (url.pathname !== '/mcp') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo MCP server. Endpoint: POST /mcp'); }
-    if (req.headers.authorization !== `Bearer ${token}`) { res.writeHead(401); return res.end('unauthorized'); }
+    const authHeader = req.headers.authorization || '';
+    const suppliedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const isMaster = suppliedToken === token;
+    const clientKeys = !isMaster && suppliedToken ? loadKeys() : {};
+    if (!isMaster && !clientKeys[suppliedToken]) {
+      res.writeHead(401); return res.end('unauthorized');
+    }
+    const auth = { master: isMaster, token: suppliedToken };
     if (req.method === 'GET') { res.writeHead(405); return res.end(); } // no server-initiated stream
     if (req.method === 'DELETE') { res.writeHead(200); return res.end(); }
     const maxBodyBytes = 1024 * 1024;
@@ -279,6 +326,8 @@ function startHttp(port) {
       if (bodyBytes > maxBodyBytes) {
         tooLarge = true;
         chunks.length = 0;
+        req.destroy();
+        break;
       } else if (!tooLarge) {
         chunks.push(c);
       }
@@ -293,11 +342,12 @@ function startHttp(port) {
     const body = Buffer.concat(chunks).toString('utf8');
     let msg;
     try { msg = JSON.parse(body); } catch { res.writeHead(400, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } })); }
-    const out = await handleAny(msg);
+    const out = await handleAny(msg, auth);
     if (!out || (Array.isArray(out) && !out.length)) { res.writeHead(202); return res.end(); }
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify(out));
   });
+  setInterval(() => cleanOldFiles(), 300000).unref();
   server.listen(port, '0.0.0.0', () => console.error(`Lampo MCP listening on port ${port} (files in ${OUT_DIR})`));
 }
 

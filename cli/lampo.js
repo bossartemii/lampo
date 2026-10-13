@@ -10,6 +10,7 @@ const HELP = `Lampo — fast videos from JSON, no browser
   lampo preview <spec.json> [-o preview.png]       keyframe contact sheet
   lampo still   <spec.json> <seconds> [-o f.png]   one full-resolution frame
   lampo validate <spec.json>                       check a spec
+  lampo captions <spec.json> [-o output.json] [--audio file] [--model model.bin]
   lampo effects                                    list effects and transitions
   lampo guide                                      full format reference
   lampo init [name]                                create a starter spec
@@ -53,6 +54,46 @@ function bar(p) {
       const { text, baseDir } = readSpec(a1);
       const r = await lampo.still(text, arg(['-o', '--out'], `frame-${a2}.png`), Number(a2) || 0, { baseDir });
       console.log(`✓ ${r.file}`);
+      break;
+    }
+    case 'captions': {
+      const { text, baseDir } = readSpec(a1);
+      const { parseLoose } = require('../src/spec');
+      const { transcribeAudio, buildCaptionLayers } = require('../src/captions');
+      const spec = parseLoose(text);
+
+      const audioArg = arg(['--audio']);
+      const audioSrc = audioArg || (
+        typeof spec.audio === 'string' ? spec.audio : spec.audio && spec.audio.src
+      );
+
+      if (!audioSrc) {
+        throw new Error('No audio source. Add "audio" to the spec or pass --audio file.mp3');
+      }
+      if (/^(https?:|data:)/i.test(audioSrc)) {
+        throw new Error('Use a local audio file for offline captions');
+      }
+
+      const audioFile = path.resolve(audioArg ? process.cwd() : baseDir, audioSrc);
+      const modelArg = arg(['--model']);
+      const model = modelArg ? path.resolve(modelArg) : process.env.LAMPO_WHISPER_MODEL;
+      const whisper = arg(['--whisper']) || process.env.LAMPO_WHISPER_CLI;
+
+      const defaultOut = a1.replace(/\.json$/i, '') + '-captioned.json';
+      const out = path.resolve(arg(['-o', '--out'], defaultOut));
+
+      if (out === path.resolve(a1)) {
+        throw new Error('Output must be different from the input spec file');
+      }
+      if (spec.layers != null && !Array.isArray(spec.layers)) {
+        throw new Error('Spec "layers" must be an array to add captions');
+      }
+
+      const segments = transcribeAudio(audioFile, { model, whisper });
+      spec.layers = [...(spec.layers || []), ...buildCaptionLayers(segments)];
+      fs.writeFileSync(out, JSON.stringify(spec, null, 2) + '\n', 'utf8');
+
+      console.log('✓ ' + out + '\n  ' + segments.length + ' caption segments');
       break;
     }
     case 'validate': {

@@ -5,3 +5,10 @@ lampo-out/
 
 !docs/media/*.mp4
 !examples/media/*.mp4
+
+*.backup
+*.pre-*
+*.before-*
+video.json
+video.preview.png
+test-voice.mp3

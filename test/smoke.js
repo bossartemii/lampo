@@ -8,8 +8,45 @@ const { execFileSync, spawnSync } = require('child_process');
 const { createCanvas } = require('@napi-rs/canvas');
 const lampo = require('..');
 const { ffmpegPath } = require('../src/ffmpeg');
+const captions = require('../src/captions');
 
 (async () => {
+  // Whisper JSON parsing and caption layer generation; no model required.
+  const captionSegments = captions.parseWhisperJson({
+    transcription: [
+      { offsets: { from: 0, to: 1250 }, text: '  Hello  ' },
+      { timestamps: { from: '00:00:01,250', to: '00:00:02,000' }, text: 'world' },
+      { offsets: { from: 2000, to: 2500 }, text: '   ' },
+    ],
+  });
+
+  assert.deepStrictEqual(captionSegments, [
+    { start: 0, end: 1.25, text: 'Hello' },
+    { start: 1.25, end: 2, text: 'world' },
+  ]);
+
+  const captionLayers = captions.buildCaptionLayers(captionSegments);
+  assert.strictEqual(captionLayers.length, 2);
+  assert.strictEqual(captionLayers[0].text, 'Hello');
+  assert.strictEqual(captionLayers[0].start, 0);
+  assert.strictEqual(captionLayers[0].end, 1.25);
+  assert.strictEqual(captionLayers[1].start, 1.25);
+
+  assert.throws(
+    () => captions.parseWhisperJson({}),
+    /no transcription or segments array/
+  );
+  assert.throws(
+    () => captions.parseWhisperJson({ transcription: [] }),
+    /no usable caption segments/
+  );
+  assert.throws(
+    () => captions.parseWhisperJson({
+      transcription: [{ offsets: { from: 2, to: 1 }, text: 'bad timing' }],
+    }),
+    /Invalid Whisper timestamps/
+  );
+
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lampo-test-'));
   // test image
   const c = createCanvas(400, 300); const x = c.getContext('2d');

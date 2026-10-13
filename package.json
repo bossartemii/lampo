@@ -20,7 +20,11 @@
     "GEMINI.md",
     "README.md",
     "LICENSE",
-    "README.it.md"
+    "README.it.md",
+    "!mcp/server.js.backup",
+    "!mcp/server.js.pre-cloud",
+    "!mcp/server.js.before-hardening-20261013-210157",
+    "!mcp/server.js.pre-limits-20261013-210425"
   ],
   "scripts": {
     "preview": "node cli/lampo.js preview examples/coffee.json",

@@ -9,6 +9,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const { render, preview, still } = require('../src/render');
 const { normalize, SpecError } = require('../src/spec');
 const { describe } = require('../src/effects');
@@ -17,7 +18,8 @@ const { SOUND_NAMES } = require('../src/sfx');
 const VERSION = require('../package.json').version;
 const GUIDE = fs.readFileSync(path.join(__dirname, '../src/guide.md'), 'utf8');
 const OUT_DIR = path.resolve(process.env.LAMPO_OUT || path.join(process.cwd(), 'lampo-out'));
-const PUBLIC_URL = process.env.LAMPO_PUBLIC_URL || null; // e.g. https://video.yourdomain.com (HTTP mode)
+const PUBLIC_URL = process.env.LAMPO_PUBLIC_URL || null; // public HTTPS base URL
+const FILE_SECRET = process.env.LAMPO_FILE_SECRET || '';
 
 const specProp = {
   description: 'The video spec as a JSON object (see lampo_guide). A JSON string is also accepted.',
@@ -76,10 +78,47 @@ function outPath(name, ext) {
 }
 
 let httpMode = false;
+let cloudBusy = false;
+
+function validateCloudSpec(input, baseDir) {
+  const s = normalize(toSpec(input), { baseDir });
+
+  if (s.duration > 60) throw new Error('Cloud beta: durata massima 60 secondi.');
+  if (s.fps > 30) throw new Error('Cloud beta: massimo 30 FPS.');
+  if (s.scenes.length > 50) throw new Error('Cloud beta: massimo 50 scene.');
+  if (!Number.isFinite(s.width) || !Number.isFinite(s.height) ||
+      s.width > 1920 || s.height > 1920 ||
+      !Number.isFinite(s.outWidth) || !Number.isFinite(s.outHeight) ||
+      s.outWidth > 1920 || s.outHeight > 1920) {
+    throw new Error('Cloud beta: dimensioni massime 1920 x 1920.');
+  }
+
+  let layers = 0;
+  function countLayers(items) {
+    for (const layer of items || []) {
+      layers++;
+      if (layers > 300) throw new Error('Cloud beta: massimo 300 livelli complessivi.');
+      if (Array.isArray(layer.layers)) countLayers(layer.layers);
+    }
+  }
+  for (const scene of s.scenes) countLayers(scene.layers);
+  countLayers(s.layers);
+
+  return s;
+}
 
 async function callTool(name, args = {}) {
   const baseDir = process.cwd();
+  const heavy = httpMode && ['lampo_preview', 'lampo_still', 'lampo_render'].includes(name);
+  if (heavy && cloudBusy) {
+    return { isError: true, content: [{ type: 'text', text: 'Lampo è occupato. Riprova tra poco.' }] };
+  }
+  if (heavy) cloudBusy = true;
+
   try {
+    if (httpMode && ['lampo_validate', 'lampo_preview', 'lampo_still', 'lampo_render'].includes(name)) {
+      validateCloudSpec(args.spec, baseDir);
+    }
     switch (name) {
       case 'lampo_guide':
         return text(GUIDE + '\n\n## Effect catalog\n' + JSON.stringify({ ...describe(), sounds: SOUND_NAMES }));
@@ -102,9 +141,15 @@ async function callTool(name, args = {}) {
         return { content: [{ type: 'image', data, mimeType: 'image/png' }] };
       }
       case 'lampo_render': {
-        const file = outPath(args.output, '.mp4');
+        const file = outPath(httpMode ? `video-${crypto.randomUUID()}.mp4` : args.output, '.mp4');
         const r = await render(toSpec(args.spec), file, { baseDir, quality: args.quality });
-        if (httpMode && PUBLIC_URL) r.url = `${PUBLIC_URL.replace(/\/$/, '')}/files/${encodeURIComponent(path.basename(file))}`;
+        if (httpMode && PUBLIC_URL) {
+          const name = path.basename(file);
+          const expires = Math.floor(Date.now() / 1000) + 900;
+          const sig = crypto.createHmac('sha256', FILE_SECRET)
+            .update(`${name}:${expires}`).digest('hex');
+          r.url = `${PUBLIC_URL.replace(/\/$/, '')}/files/${encodeURIComponent(name)}?expires=${expires}&sig=${sig}`;
+        }
         return text(r);
       }
       default:
@@ -113,6 +158,8 @@ async function callTool(name, args = {}) {
   } catch (e) {
     const msg = e instanceof SpecError ? e.message + '\n\nCall lampo_guide for the reference.' : `Error: ${e.message}`;
     return { isError: true, content: [{ type: 'text', text: msg }] };
+  } finally {
+    if (heavy) cloudBusy = false;
   }
 }
 
@@ -171,24 +218,79 @@ function startStdio() {
 // ---------- HTTP (Streamable HTTP, JSON responses) ----------
 function startHttp(port) {
   httpMode = true;
-  const token = process.env.LAMPO_TOKEN; // if set, required as a Bearer token
+  const token = process.env.LAMPO_TOKEN;
+  if (!token || token.length < 32) {
+    throw new Error('HTTP mode requires LAMPO_TOKEN with at least 32 characters.');
+  }
+  if (FILE_SECRET.length < 32) {
+    throw new Error('HTTP mode requires LAMPO_FILE_SECRET with at least 32 characters.');
+  }
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'content-type, authorization, mcp-session-id, mcp-protocol-version');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     if (req.method === 'GET' && url.pathname.startsWith('/files/')) {
-      const f = path.join(OUT_DIR, path.basename(decodeURIComponent(url.pathname.slice(7))));
-      if (!fs.existsSync(f)) { res.writeHead(404); return res.end('not found'); }
-      res.writeHead(200, { 'content-type': 'video/mp4', 'content-length': fs.statSync(f).size });
-      return fs.createReadStream(f).pipe(res);
+      let name;
+      try { name = path.basename(decodeURIComponent(url.pathname.slice(7))); }
+      catch { res.writeHead(400); return res.end('bad filename'); }
+
+      const expires = Number(url.searchParams.get('expires'));
+      const sig = url.searchParams.get('sig') || '';
+      if (!name || !Number.isSafeInteger(expires) ||
+          expires < Math.floor(Date.now() / 1000) ||
+          expires > Math.floor(Date.now() / 1000) + 3600 ||
+          !/^[a-f0-9]{64}$/.test(sig)) {
+        res.writeHead(403); return res.end('invalid or expired link');
+      }
+
+      const expected = crypto.createHmac('sha256', FILE_SECRET)
+        .update(`${name}:${expires}`).digest();
+      const supplied = Buffer.from(sig, 'hex');
+      if (supplied.length !== expected.length ||
+          !crypto.timingSafeEqual(supplied, expected)) {
+        res.writeHead(403); return res.end('invalid or expired link');
+      }
+
+      const f = path.join(OUT_DIR, name);
+      if (!fs.existsSync(f) || !fs.statSync(f).isFile()) {
+        res.writeHead(404); return res.end('not found');
+      }
+      res.writeHead(200, {
+        'content-type': 'video/mp4',
+        'content-length': fs.statSync(f).size,
+        'cache-control': 'private, no-store',
+        'x-content-type-options': 'nosniff'
+      });
+      const stream = fs.createReadStream(f);
+      stream.on('error', () => { if (!res.headersSent) res.writeHead(500); res.end(); });
+      return stream.pipe(res);
     }
     if (url.pathname !== '/mcp') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo MCP server. Endpoint: POST /mcp'); }
-    if (token && req.headers.authorization !== `Bearer ${token}`) { res.writeHead(401); return res.end(); }
+    if (req.headers.authorization !== `Bearer ${token}`) { res.writeHead(401); return res.end('unauthorized'); }
     if (req.method === 'GET') { res.writeHead(405); return res.end(); } // no server-initiated stream
     if (req.method === 'DELETE') { res.writeHead(200); return res.end(); }
-    let body = '';
-    for await (const c of req) body += c;
+    const maxBodyBytes = 1024 * 1024;
+    const chunks = [];
+    let bodyBytes = 0;
+    let tooLarge = false;
+    for await (const c of req) {
+      bodyBytes += c.length;
+      if (bodyBytes > maxBodyBytes) {
+        tooLarge = true;
+        chunks.length = 0;
+      } else if (!tooLarge) {
+        chunks.push(c);
+      }
+    }
+    if (tooLarge) {
+      res.writeHead(413, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({
+        jsonrpc: '2.0', id: null,
+        error: { code: -32600, message: 'Request body exceeds the 1 MiB limit.' }
+      }));
+    }
+    const body = Buffer.concat(chunks).toString('utf8');
     let msg;
     try { msg = JSON.parse(body); } catch { res.writeHead(400, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } })); }
     const out = await handleAny(msg);
@@ -196,12 +298,12 @@ function startHttp(port) {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify(out));
   });
-  server.listen(port, () => console.error(`Lampo MCP on http://localhost:${port}/mcp  (files in ${OUT_DIR})`));
+  server.listen(port, '0.0.0.0', () => console.error(`Lampo MCP listening on port ${port} (files in ${OUT_DIR})`));
 }
 
 if (require.main === module) {
   const i = process.argv.indexOf('--http');
-  if (i >= 0) startHttp(Number(process.argv[i + 1]) || 3333);
+  if (i >= 0) startHttp(Number(process.env.PORT) || Number(process.argv[i + 1]) || 3333);
   else startStdio();
 }
 

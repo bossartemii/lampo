@@ -306,6 +306,37 @@ function startHttp(port) {
       stream.on('error', () => { if (!res.headersSent) res.writeHead(500); res.end(); });
       return stream.pipe(res);
     }
+    if (req.method === 'POST' && url.pathname === '/admin/keys') {
+      if (req.headers.authorization !== `Bearer ${token}`) {
+        res.writeHead(401); return res.end('unauthorized');
+      }
+      const chunks = [];
+      for await (const c of req) chunks.push(c);
+      let body = {};
+      try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch {}
+      const keys = loadKeys();
+      if (body.action === 'add') {
+        const k = 'lk_' + crypto.randomBytes(24).toString('hex');
+        keys[k] = { label: body.label || 'client', credits: Number(body.credits ?? 10), used: 0, createdAt: new Date().toISOString() };
+        saveKeys(keys);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({ token: k, ...keys[k] }));
+      }
+      if (body.action === 'topup' && keys[body.token]) {
+        keys[body.token].credits = (keys[body.token].credits || 0) + Number(body.credits || 0);
+        saveKeys(keys);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({ token: body.token, ...keys[body.token] }));
+      }
+      if (body.action === 'revoke' && keys[body.token]) {
+        delete keys[body.token];
+        saveKeys(keys);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true, revoked: body.token }));
+      }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify(keys, null, 2));
+    }
     if (url.pathname !== '/mcp') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo MCP server. Endpoint: POST /mcp'); }
     const authHeader = req.headers.authorization || '';
     const suppliedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';

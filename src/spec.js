@@ -64,10 +64,19 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     problems.push(`unknown format "${spec.format}". Use one of: ${Object.keys(FORMATS).join(', ')} (or width/height)`);
     [w, h] = FORMATS['9:16'];
   }
-  spec.width = spec.width || w;
-  spec.height = spec.height || h;
-  spec.fps = spec.fps || 30;
-  if (spec.fps < 1 || spec.fps > 120) problems.push('fps must be between 1 and 120');
+  spec.width = spec.width ?? w;
+  spec.height = spec.height ?? h;
+  spec.fps = spec.fps ?? 30;
+
+  if (typeof spec.width !== 'number' || !Number.isFinite(spec.width) || spec.width <= 0) {
+    problems.push('width must be a positive finite number');
+  }
+  if (typeof spec.height !== 'number' || !Number.isFinite(spec.height) || spec.height <= 0) {
+    problems.push('height must be a positive finite number');
+  }
+  if (typeof spec.fps !== 'number' || !Number.isFinite(spec.fps) || spec.fps < 1 || spec.fps > 120) {
+    problems.push('fps must be a number between 1 and 120');
+  }
   spec.quality = spec.quality || 'standard';
   if (!QUALITY[spec.quality]) problems.push('quality must be draft, standard or high');
   spec.theme = { font: 'Inter', color: '#ffffff', accent: '#0A84FF', background: '#000000', ...(spec.theme || {}) };

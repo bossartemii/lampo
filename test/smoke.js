@@ -62,6 +62,11 @@ const { ffmpegPath } = require('../src/ffmpeg');
   // the spec must be valid
   const s = lampo.validate(spec, { baseDir: dir });
   // a wrong spec gives useful errors
+  // invalid dimensions and fps must be rejected
+  assert.throws(() => lampo.validate({ fps: 'abc', scenes: [{ duration: 1 }] }), /fps must be a number between 1 and 120/);
+  assert.throws(() => lampo.validate({ width: -100, height: 200, scenes: [{ duration: 1 }] }), /width must be a positive finite number/);
+  assert.throws(() => lampo.validate({ width: 200, height: 0, scenes: [{ duration: 1 }] }), /height must be a positive finite number/);
+  assert.throws(() => lampo.validate({ fps: 121, scenes: [{ duration: 1 }] }), /fps must be a number between 1 and 120/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ text: 'x', in: 'boh' }] }] }), /effect "boh" does not exist/);
   assert.throws(() => lampo.validate({ format: 'xx', scenes: [] }), /unknown format "xx"/);
   assert.throws(() => lampo.validate({ sounds: [{ sound: 'meow', at: 1 }], scenes: [{ duration: 1 }] }), /sound "meow" does not exist/);

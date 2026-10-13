@@ -63,6 +63,19 @@ const { ffmpegPath } = require('../src/ffmpeg');
   const s = lampo.validate(spec, { baseDir: dir });
   // a wrong spec gives useful errors
   // invalid dimensions and fps must be rejected
+  // reject invalid input, duration, transition duration and output scale
+  assert.throws(() => lampo.validate(null), /spec must be a JSON object/);
+  assert.throws(() => lampo.validate(undefined), /spec must be a JSON object/);
+  assert.throws(() => lampo.validate({ scenes: [{ duration: 'abc' }] }), /duration.*positive finite number/);
+  assert.throws(() => lampo.validate({ scale: -1, scenes: [{ duration: 1 }] }), /scale must be a positive finite number/);
+  const firstTransition = fx.transitions[0];
+  const transitionType = typeof firstTransition === 'string' ? firstTransition : firstTransition.type;
+  assert.throws(() => lampo.validate({
+    scenes: [
+      { duration: 1 },
+      { duration: 1, transition: { type: transitionType, duration: -1 } }
+    ]
+  }), /transition: duration must be a finite number/);
   assert.throws(() => lampo.validate({ fps: 'abc', scenes: [{ duration: 1 }] }), /fps must be a number between 1 and 120/);
   assert.throws(() => lampo.validate({ width: -100, height: 200, scenes: [{ duration: 1 }] }), /width must be a positive finite number/);
   assert.throws(() => lampo.validate({ width: 200, height: 0, scenes: [{ duration: 1 }] }), /height must be a positive finite number/);

@@ -56,6 +56,10 @@ function parseLoose(text) {
 }
 
 function normalize(input, { baseDir = process.cwd() } = {}) {
+  if (typeof input !== 'string' &&
+      (!input || typeof input !== 'object' || Array.isArray(input))) {
+    throw new SpecError(['spec must be a JSON object']);
+  }
   const spec = typeof input === 'string' ? parseLoose(input) : JSON.parse(JSON.stringify(input));
   const problems = [];
 
@@ -79,6 +83,10 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
   }
   spec.quality = spec.quality || 'standard';
   if (!QUALITY[spec.quality]) problems.push('quality must be draft, standard or high');
+  if (spec.scale != null &&
+      (typeof spec.scale !== 'number' || !Number.isFinite(spec.scale) || spec.scale <= 0)) {
+    problems.push('scale must be a positive finite number');
+  }
   spec.theme = { font: 'Inter', color: '#ffffff', accent: '#0A84FF', background: '#000000', ...(spec.theme || {}) };
   spec.baseDir = spec.baseDir || baseDir;
   const resolve = (p) => (!p || /^(data:|https?:)/.test(p) || path.isAbsolute(p) ? p : path.resolve(spec.baseDir, p));
@@ -147,10 +155,20 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
   let cursor = 0;
   spec.scenes.forEach((S, i) => {
     const where = `scenes[${i}]`;
-    if (!(S.duration > 0)) problems.push(`${where}: "duration" (seconds) is required and must be > 0`);
-    S.duration = S.duration > 0 ? S.duration : 1;
+    if (typeof S.duration !== 'number' || !Number.isFinite(S.duration) || S.duration <= 0) {
+      problems.push(`${where}: "duration" must be a positive finite number of seconds`);
+    }
+    S.duration = typeof S.duration === 'number' && Number.isFinite(S.duration) && S.duration > 0 ? S.duration : 1;
     let tr = S.transition == null ? null : typeof S.transition === 'string' ? { type: S.transition } : { ...S.transition };
-    if (tr && !transitions.includes(tr.type)) { problems.push(`${where}.transition: "${tr.type}" does not exist. Use: ${transitions.join(', ')}`); tr = null; }
+    if (tr && !transitions.includes(tr.type)) {
+      problems.push(`${where}.transition: "${tr.type}" does not exist. Use: ${transitions.join(', ')}`);
+      tr = null;
+    }
+    if (tr && tr.duration != null &&
+        (typeof tr.duration !== 'number' || !Number.isFinite(tr.duration) || tr.duration < 0)) {
+      problems.push(`${where}.transition: duration must be a finite number >= 0`);
+      tr = null;
+    }
     if (i === 0 || !tr || tr.type === 'none') tr = null;
     else tr.duration = Math.min(tr.duration ?? 0.6, S.duration * 0.5, spec.scenes[i - 1].duration * 0.5);
     S.transition = tr;
@@ -171,7 +189,7 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
 
   if (problems.length) throw new SpecError(problems);
   const q = QUALITY[spec.quality];
-  spec.outScale = spec.scale || q.scale;
+  spec.outScale = spec.scale ?? q.scale;
   spec.outWidth = Math.round((spec.width * spec.outScale) / 2) * 2;
   spec.outHeight = Math.round((spec.height * spec.outScale) / 2) * 2;
   spec.encode = { crf: spec.crf ?? q.crf, preset: q.preset };

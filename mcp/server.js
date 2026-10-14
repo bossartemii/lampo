@@ -440,7 +440,9 @@ function startHttp(port) {
     const isApi = url.pathname === '/api/render' || url.pathname === '/api/validate';
     if (url.pathname !== '/mcp' && !pathKey && !isApi) { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo Cloud. MCP endpoint: POST /mcp (Authorization: Bearer <key>) or /mcp/<key>. REST: POST /api/render, /api/validate.'); }
     const authHeader = req.headers.authorization || '';
-    const suppliedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : pathKey;
+    // the REST API also takes ?key=, so a browser can call it with a simple request (no CORS preflight)
+    const queryKey = isApi ? (url.searchParams.get('key') || '') : '';
+    const suppliedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : pathKey || queryKey;
     const isMaster = suppliedToken === token;
     const clientKeys = !isMaster && suppliedToken ? loadKeys() : {};
     if (!isMaster && !clientKeys[suppliedToken]) {

@@ -388,14 +388,15 @@
     try { body = JSON.parse(code.value); } catch (e) { note.className = 'note err'; note.textContent = 'Fix the JSON first.'; return; }
     btn.disabled = true; note.textContent = 'Rendering on the cloud…';
     try {
-      const r = await fetch(`${base}/api/render`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ spec: body, quality: 'standard' }) });
+      // the key goes in the URL and the body as text/plain: a simple request, no CORS preflight
+      const r = await fetch(`${base}/api/render?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ spec: body, quality: 'standard' }) });
       const data = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
       if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
       note.textContent = `✓ ${data.duration} s · ${data.width}×${data.height} · rendered in ${data.renderSeconds} s${data.creditsLeft != null ? ` · ${data.creditsLeft} credits left` : ''}`;
       const v = document.createElement('video'); v.src = data.url; v.controls = true; v.playsInline = true;
       const a = document.createElement('a'); a.href = data.url; a.textContent = 'Download the MP4 (link valid 15 minutes)'; a.style.display = 'block'; a.style.marginTop = '8px';
       out.append(v, a);
-    } catch (e) { note.className = 'note err'; note.textContent = e.message === 'Failed to fetch' ? 'Could not reach the cloud (wrong URL, offline, or CORS).' : e.message; }
+    } catch (e) { note.className = 'note err'; note.textContent = e.message === 'Failed to fetch' ? 'Could not reach the cloud (wrong URL, offline, or the Space is waking up: try again in a minute).' : e.message; }
     btn.disabled = false;
   });
 

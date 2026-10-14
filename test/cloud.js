@@ -36,6 +36,11 @@ const MASTER = 'm'.repeat(40);
     const spec = { format: '1:1', fps: 12, quality: 'draft', scenes: [{ duration: 1, layers: [{ text: 'Cloud', in: 'popIn' }] }] };
     assert.strictEqual((await post('/api/render', { spec })).status, 401, 'no key → 401');
 
+    // the key can also be in the query string (the playground uses a simple request, no preflight)
+    const q = await fetch(`${base}/api/validate?key=${key}`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ spec }) });
+    assert.strictEqual(q.status, 200);
+    assert.strictEqual(q.headers.get('access-control-allow-origin'), '*');
+
     const v = await post('/api/validate', { spec }, key);
     assert.strictEqual(v.status, 200);
     assert.strictEqual((await v.json()).ok, true);

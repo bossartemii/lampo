@@ -11,6 +11,7 @@ It is the same `mcp/server.js`, started with `--http`:
 | `POST /mcp` with `Authorization: Bearer <key>` | MCP for clients that can send headers (Claude Code, Cursor, Codex…) |
 | `POST /mcp/<key>` | MCP with the key in the URL, for **ChatGPT and Claude.ai connectors** (they can't send headers) |
 | `POST /api/render` `{ "spec": {…}, "quality": "standard" }` | REST render → `{ url, duration, width, height, renderSeconds, creditsLeft }` |
+| `POST /api/render?key=<key>` | the same with the key in the URL: a browser can call it as a simple request, without a CORS preflight (the playground does) |
 | `POST /api/validate` `{ "spec": {…} }` | REST validation → `{ ok, duration, scenes, size }` or `{ error }` with what to fix |
 | `GET /files/<name>?expires&sig` | the rendered MP4, behind a signed link valid 15 minutes |
 | `GET /health` | `{ ok, version, busy }` |
@@ -25,11 +26,13 @@ What the server enforces:
 ## 1. Deploy
 
 ### Hugging Face Spaces (free, no credit card)
-Free CPU Spaces have 2 vCPU and 16 GB of RAM, plenty for Lampo. The free way is a **Gradio** Space (Docker Spaces need a paid plan):
-its `app.py` can start any server on the Space's port, so ours downloads Lampo and runs it. Everything happens in the browser:
+Free Spaces are enough for Lampo. Docker Spaces need a paid plan, so the free way is a **Gradio** Space:
+[`cloud/huggingface-free/app.py`](cloud/huggingface-free/app.py) is a small Gradio app (a page with the connection details)
+that downloads Lampo, runs its server next to it and forwards `/mcp`, `/api/…`, `/files/…` and `/health` to it.
+It also works on **ZeroGPU** hardware, which a free Gradio Space may get and can't leave without PRO: ZeroGPU wants
+one `@spaces.GPU` function, so `app.py` declares one that is never called (Lampo renders on the CPU).
 
-1. On huggingface.co: **New Space** → name it (e.g. `lampo`) → SDK **Gradio** → template **Blank** → hardware **Free** → **Public** (a private Space can't be reached by ChatGPT or Claude.ai).
-   For hardware pick **CPU basic**. If the Space ends up on **ZeroGPU** it works too: `app.py` declares the GPU function ZeroGPU asks for, and Lampo still renders on the CPU.
+1. On huggingface.co: **New Space** → name it (e.g. `lampo`) → SDK **Gradio** → template **Blank** → free hardware → **Public** (a private Space can't be reached by ChatGPT or Claude.ai).
 2. **Files → Add file → Upload files**: upload the three files in [`cloud/huggingface-free/`](cloud/huggingface-free/): `app.py`, `packages.txt` and `README.md` (it replaces the Space's README; the header at the top configures the Space).
 3. **Settings → Variables and secrets → New secret**:
    - `LAMPO_TOKEN`: your master key, any random string of at least 32 characters

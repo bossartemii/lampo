@@ -120,6 +120,7 @@ Never place a flat, static photo.
 ## Sound design
 
 - Turn on `"sfx": true` for anything social: sound makes motion feel twice as fast.
-- One `riser` ending exactly on the main reveal (`"at": reveal - duration`), one `boom` or `impact` on the brand name. Not more than one boom per 5s.
+- One `riser` (or `reverse`) ending exactly on the main reveal (`"at": reveal - duration`), one `boom`, `impact` or `drop` on the brand name. Not more than one boom per 5s.
+- Match the sound to the gesture: UI taps → `tap`/`click`, typing → `keyboard`, a success state → `success`/`ding`, a price → `cash`/`coin`, a photo → `shutter`, magic/AI reveal → `magic`/`sparkle`, something leaving → `downlifter`, tension → `heartbeat`, beats → `kick`/`snare`/`clap`/`hihat`.
 - Mute noisy duplicates: many identical swaps in a row → `"sfx": false` on most of them, keep the last.
 - With music (`audio`), cut scenes on the beat: scene duration = beats × 60 / BPM.

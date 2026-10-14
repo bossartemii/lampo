@@ -118,7 +118,7 @@ Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-
 - **14 loop**: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing, bounce, orbit, heartbeat, flicker, glitch
 - **19 transizioni**: fade, slide, slideUp, slideDown, push, pushUp, whip, zoom, zoomIn, wipe, wipeLeft, wipeUp, wipeDown, barn, blur, circle, fadeBlack, flash, none
 - **Sfondi**: colore, gradiente animato, "glow" (luci morbide in movimento), immagine con Ken Burns, **video b-roll**
-- **Effetti sonori (SFX)** generati da Lampo e sincronizzati da soli con le animazioni (`"sfx": true`): whoosh, pop, tick, impact, boom, riser, ding e altri, senza file audio e senza problemi di diritti
+- **Effetti sonori (SFX)** generati da Lampo e sincronizzati da soli con le animazioni (`"sfx": true`): 42 suoni (whoosh, flyby, riser, reverse, pop, tap, tastiera, successo, cassa, scatto, impact, slam, drop, kick, snare, magic, sparkle…), senza file audio e senza problemi di diritti
 - **Audio** con fade in/out, **font personalizzati**, **layer globali** (logo/watermark), vignettatura
 - **JSON tollerante**: accetta commenti e virgole finali, errori tipici degli LLM
 

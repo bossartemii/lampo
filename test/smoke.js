@@ -101,6 +101,16 @@ const captions = require('../src/captions');
   // a wrong spec gives useful errors
   // invalid dimensions and fps must be rejected
   // reject invalid input, duration, transition duration and output scale
+  // every sound renders clean audio, with any seed and options
+  const { SOUNDS } = require('../src/sfx');
+  assert.ok(fx.sounds.length >= 42, 'expected at least 42 sounds');
+  for (const n of fx.sounds) for (const seed of [1234, 1311]) for (const o of [{}, { duration: 0.4, pitch: 300 }, { duration: 3, pitch: 2000 }]) {
+    const snd = SOUNDS[n](o, seed);
+    let peak = 0;
+    for (const v of snd.data) { assert.ok(Number.isFinite(v), `${n}: NaN in audio`); peak = Math.max(peak, Math.abs(v)); }
+    assert.ok(peak > 0.05 && peak <= 1, `${n}: peak ${peak}`);
+    assert.ok(snd.hit >= 0 && snd.hit <= snd.data.length / 44100 + 1e-6, `${n}: hit outside the sound`);
+  }
   assert.throws(() => lampo.validate(null), /spec must be a JSON object/);
   assert.throws(() => lampo.validate(undefined), /spec must be a JSON object/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 'abc' }] }), /duration.*positive finite number/);

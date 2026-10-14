@@ -91,8 +91,13 @@ Loops: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing (pen
 Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, or a cubic-bezier array [x1,y1,x2,y2]
 
 ## Sound effects
-Synthesized by Lampo (no audio files, no licensing). Sounds: whoosh, swoosh, swipe, pop, click, tick, impact, boom, riser, ding, chime, glitch.
-- `"sfx": true` at top level adds them automatically: whoosh on slide/push/zoom/blur transitions, pop on popIn/wordsPop, impact on big zoomOut/drop titles, swoosh on rise/wordsUp/blurIn, swipe on slides and grow, ticks on typewriter/letters, ticks + ding on counters. Mixed under the music if `audio` is set.
+Synthesized by Lampo (no audio files, no licensing). 42 sounds:
+- Movement: whoosh, swoosh, swipe, air (soft breath), flyby (doppler pass), spin, whistle (slide up), zap, laser, riser (builds up to `at + duration`), downlifter (falls away), reverse (reversed cymbal that stops dead on its end — put it right before a hit)
+- UI: click, tap, tick, keyboard, toggle, bubble, pop, notification, success, error, shutter (camera), coin, cash (register)
+- Impacts and drums: impact, boom, thud, punch, slam, drop (bass drop), kick, snare, clap, hihat, cymbal, heartbeat
+- Musical: ding, chime, sparkle, magic (harp glissando), glitch
+`pitch` changes the tonal ones (pop, tick, ding, tap, bubble, notification, success, error, coin, laser, whistle, magic); `duration` stretches the swept ones (whoosh, swoosh, swipe, riser, downlifter, reverse, air, flyby, spin, whistle, zap, impact, boom, drop, hihat, cymbal).
+- `"sfx": true` at top level adds them automatically: whoosh on slide/push/zoom/blur transitions, pop on popIn/wordsPop, impact on big zoomOut/drop titles, swoosh on rise/wordsUp/blurIn, swipe on slides and grow, bubble on elastic, air on focus/iris/unfold, zap on flicker, flyby on whip transitions, ticks on typewriter/letters, ticks + ding on counters. Mixed under the music if `audio` is set.
 - Per layer: `"sfx": "boom"` or `{ "sound": "ding", "at": 0.3, "volume": 0.6 }` (at = seconds from the layer start), `"sfx": false` to mute it.
 - Per scene: `"sfx": "swoosh"` changes the transition sound, `"sfx": false` mutes it.
 - Manual: `"sounds": [{ "sound": "riser", "at": 1.2, "duration": 1.5 }]` — a riser ends at `at + duration`, good right before a big reveal. `pitch` changes pop/tick/ding.

@@ -119,7 +119,7 @@ Host it on any VPS (or try it with `cloudflared tunnel --url http://localhost:33
 
 | Tool | What it does |
 |---|---|
-| `lampo_guide` | Full spec reference + design recipes. The agent reads it once. |
+| `lampo_guide` | Full spec reference. `topic`: `routes`, `styles`, `blueprints`, `motion`, `review` for motion-design direction. |
 | `lampo_preview` | Keyframe contact sheet as an image (~1 s) |
 | `lampo_still` | One full-resolution frame as an image |
 | `lampo_validate` | Checks a spec, returns fixable errors |
@@ -127,6 +127,7 @@ Host it on any VPS (or try it with `cloudflared tunnel --url http://localhost:33
 
 ## What's inside
 
+- **Motion-design skill** (like a director in the agent): 8 video routes, 9 named visual styles, 16 time-coded blueprints with ready JSON (kinetic slam, morph lockup, ticker takeover, camera pan, app demo…), motion rules and a visual review loop — `skills/lampo/`, also via `lampo_guide` topics
 - **Formats** 9:16, 1:1, 4:5, 16:9 or custom · 1–120 fps · draft / standard / high
 - **Layers** text (with `**highlights**`, gradients, stroke, pill buttons, auto-fit), counter (locale-aware), rect, circle, line, image, **video clips** (trim, slow motion, loop, rounded corners, optional clip audio)
 - **Motion design**: shapes that **morph** (dot → line → pill → app icon → full screen) with keyframed size, radius and color, circle takeovers, an **iris transition**, **RGB glitch** text, **25 line icons** (also inline with text), a loading **spinner**, `rush` speed-blur entrances
@@ -163,14 +164,14 @@ Lampo is free and open source. If it saves you time:
 ```bash
 npm test                          # smoke test: every effect, transition, image, audio
 node bench/browser-baseline.js    # benchmark vs the browser pipeline (needs puppeteer)
-./scripts/build-skill.sh          # rebuild skills/lampo/SKILL.md from src/guide.md
+./scripts/build-skill.sh          # copy src/guide.md into skills/lampo/references/spec.md
 ```
 
 ```
 src/          engine: spec (validation) · frame (drawing) · effects · render (parallel)
 mcp/          server.js (stdio + HTTP, zero deps) · launch.js (installs the engine on first run)
 cli/          command line
-skills/lampo/ SKILL.md shared by Claude Code and Gemini CLI
+skills/lampo/ SKILL.md + references/ (routes, styles, blueprints, motion rules, review) for Claude Code and Gemini CLI
 ```
 
 Contributions welcome — new effects live in [`src/effects.js`](src/effects.js) and are a few lines each.

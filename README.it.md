@@ -82,6 +82,7 @@ npx lampo preview spot.json          # griglia di fotogrammi chiave (PNG)
 npx lampo render spot.json -q draft  # bozza veloce
 npx lampo render spot.json -o spot.mp4
 npx lampo guide                      # riferimento completo del formato
+npx lampo guide blueprints           # anche: routes, styles, motion, review
 ```
 
 ## Esempio di spec
@@ -108,6 +109,7 @@ npx lampo guide                      # riferimento completo del formato
 Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-app.json` (16:9). In inglese in `examples/`.
 
 ## Cosa c'è dentro
+- **Skill di motion design** (un regista dentro l'agente): 8 tipi di video, 9 stili visivi, 16 blueprint con JSON pronto (kinetic slam, morph del logo, ticker, camera pan, demo app…), regole di motion e revisione visiva. In `skills/lampo/`, anche via `lampo_guide`. Esempio: `examples/it/showreel.json`
 - **Formati**: 9:16, 1:1, 4:5, 16:9 (o width/height a mano), 1–120 fps, qualità draft/standard/high
 - **Motion design**: forme che si **trasformano** (punto → linea → etichetta → icona app → schermo intero), cerchi che riempiono lo schermo, transizione a **cerchio**, testo con **glitch RGB**, **25 icone** (anche dentro il testo), **spinner**, entrate veloci con scia (`rush`). Vedi `examples/it/artemii-app.json`
 - **Demo di app e siti**: un iPhone il cui schermo si disegna in punti reali, gruppi per card/bottoni/schermate, un **dito** che scorre e tocca con l'onda del tocco, **keyframe** per zoom e bottoni premuti, **tratti a mano** che si disegnano da soli (sottolineatura, cerchio, freccia, spunta, qualsiasi SVG) e l'effetto **timbro**. Vedi `examples/it/artemii-preventivo.json`
@@ -125,7 +127,7 @@ Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-
 src/           motore: spec.js (validazione), frame.js (disegno), effects.js, render.js (parallelo)
 mcp/           server.js (stdio + HTTP, zero dipendenze), launch.js (auto-installa il motore)
 cli/lampo.js   riga di comando
-skills/lampo/  SKILL.md per Claude e Gemini (rigenera con scripts/build-skill.sh)
+skills/lampo/  SKILL.md + references/ (tipi di video, stili, blueprint, regole di motion, revisione) per Claude e Gemini
 .claude-plugin/, .mcp.json      plugin Claude Code
 gemini-extension.json, GEMINI.md estensione Gemini CLI
 bench/         benchmark contro il metodo browser

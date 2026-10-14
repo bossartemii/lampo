@@ -12,7 +12,7 @@ const HELP = `Lampo — fast videos from JSON, no browser
   lampo validate <spec.json>                       check a spec
   lampo captions <spec.json> [-o output.json] [--audio file] [--model model.bin]
   lampo effects                                    list effects and transitions
-  lampo guide                                      full format reference
+  lampo guide [topic]                              reference: spec | routes | styles | blueprints | motion | review | all
   lampo init [name]                                create a starter spec
   lampo mcp [--http 3333]                          start the MCP server
 `;
@@ -106,7 +106,7 @@ function bar(p) {
       console.log(JSON.stringify(lampo.effects(), null, 2));
       break;
     case 'guide':
-      console.log(fs.readFileSync(path.join(__dirname, '../src/guide.md'), 'utf8'));
+      console.log(require('../src/guide').guide(a1 || 'spec'));
       break;
     case 'init': {
       const name = (a1 || 'video').replace(/\.json$/i, '') + '.json';

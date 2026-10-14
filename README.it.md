@@ -7,9 +7,51 @@ L'agente scrive poche righe di JSON con effetti già pronti, Lampo fa il video i
 
 Funziona come **plugin per Claude Code**, **estensione per Gemini CLI**, **server MCP** per Claude Desktop, Codex e ChatGPT, e come **CLI / libreria Node**.
 
+<p align="center"><img src="media/showreel-it.gif" height="420" alt="Showreel da 17 secondi fatto con Lampo"> &nbsp; <img src="media/coffee.gif" height="420" alt="Spot verticale per una caffetteria fatto con Lampo"></p>
+<p align="center"><sub>Ogni video è un file JSON: <a href="examples/it/showreel.json">showreel.json</a> (17 s, renderizzato in ~10 s) · <a href="examples/coffee.json">coffee.json</a> · versione con l'audio sul <a href="https://bossartemii.github.io/lampo/">sito</a></sub></p>
+
 ```
 spec.json  →  motore Skia (niente browser)  →  N worker in parallelo  →  ffmpeg  →  video.mp4
 ```
+
+## Galleria
+
+### 16 blueprint di scena
+Modelli di scena con tempi precisi, una mossa firma e JSON pronto: l'agente ne copia uno per scena e cambia i testi.
+<img src="media/blueprints.gif" width="100%" alt="Otto blueprint di Lampo">
+
+<sub>kinetic-slam · morph-lockup · ticker-takeover · stat-hit · grid-assemble · app-demo · camera-pan · cta-press — tutti e 16 con JSON in <a href="skills/lampo/references/blueprints.md">blueprints.md</a></sub>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 9 stili visivi
+Keynote Glow · Swiss Pulse · Bold Poster · Neon Night · Velvet Luxury · Soft Pastel · Data Drift · Mono Motion · Street Warm.
+
+Ogni stile fissa palette, tipografia, effetti, transizioni e suoni: il video sembra un unico progetto. I colori e il font del brand si sostituiscono, le regole di movimento restano. In [visual-styles.md](skills/lampo/references/visual-styles.md).
+
+### Anche orizzontale
+<img src="media/launch.gif" width="100%" alt="Video di lancio 16:9 fatto con Lampo">
+
+</td>
+<td width="50%" valign="top"><img src="media/styles.gif" width="100%" alt="I 9 stili visivi di Lampo"></td>
+</tr>
+</table>
+
+### 42 suoni sintetizzati
+Con `"sfx": true` ogni entrata, transizione, tocco e contatore ha il suo suono, sul fotogramma giusto. Niente file audio, niente diritti. **[▶ Ascoltali tutti](docs/media/sfx.mp4)**.
+
+## Un motion designer dentro l'agente
+
+Lo skill di Lampo (Claude Code, Gemini CLI, o `lampo_guide` con `topic` per gli altri client MCP) dirige il video:
+
+1. **Tipo di video**: spot social, lancio prodotto, demo app, explainer, promo a tempo di musica, sigla… (8 percorsi con durata, scene e struttura del testo)
+2. **Stile**: uno dei 9 qui sopra, o i colori del brand con le regole di quello stile
+3. **Piano delle scene**: un blueprint per scena, un momento di continuità (morph, cambio colore, spinta), dove finisce il riser e dove cade il boom
+4. **Spec**: seguendo le regole di motion (tempi e curve diverse, entrate in ordine di importanza, tre livelli per scena)
+5. **Guarda e correggi**: `lampo_preview` restituisce i fotogrammi chiave come immagine in ~1 s, con una checklist
+6. **Render**: l'MP4, più una variante proposta
 
 ## Perché è più veloce di HyperFrames e Remotion
 

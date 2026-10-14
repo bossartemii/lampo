@@ -82,6 +82,7 @@ npx lampo preview spot.json          # griglia di fotogrammi chiave (PNG)
 npx lampo render spot.json -q draft  # bozza veloce
 npx lampo render spot.json -o spot.mp4
 npx lampo guide                      # riferimento completo del formato
+npx lampo guide blueprints           # anche: routes, styles, motion, review
 ```
 
 ## Esempio di spec
@@ -108,13 +109,14 @@ npx lampo guide                      # riferimento completo del formato
 Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-app.json` (16:9). In inglese in `examples/`.
 
 ## Cosa c'è dentro
+- **Skill di motion design** (un regista dentro l'agente): 8 tipi di video, 9 stili visivi, 16 blueprint con JSON pronto (kinetic slam, morph del logo, ticker, camera pan, demo app…), regole di motion e revisione visiva. In `skills/lampo/`, anche via `lampo_guide`. Esempio: `examples/it/showreel.json`
 - **Formati**: 9:16, 1:1, 4:5, 16:9 (o width/height a mano), 1–120 fps, qualità draft/standard/high
 - **Motion design**: forme che si **trasformano** (punto → linea → etichetta → icona app → schermo intero), cerchi che riempiono lo schermo, transizione a **cerchio**, testo con **glitch RGB**, **25 icone** (anche dentro il testo), **spinner**, entrate veloci con scia (`rush`). Vedi `examples/it/artemii-app.json`
 - **Demo di app e siti**: un iPhone il cui schermo si disegna in punti reali, gruppi per card/bottoni/schermate, un **dito** che scorre e tocca con l'onda del tocco, **keyframe** per zoom e bottoni premuti, **tratti a mano** che si disegnano da soli (sottolineatura, cerchio, freccia, spunta, qualsiasi SVG) e l'effetto **timbro**. Vedi `examples/it/artemii-preventivo.json`
 - **Layer**: text (con `**evidenziato**`, gradiente, bordo, pillola/bottone), counter, rect, circle, line, image, **clip video** (taglio iniziale, rallentatore, loop, angoli arrotondati, audio del clip a scelta)
-- **20 effetti** di entrata/uscita, tra cui `rise` (righe che salgono da una maschera, stile keynote), `wordsUp`, `letters`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`
-- **7 loop**: float, pulse, rotate, kenburns, drift, shake, breathe
-- **8 transizioni**: fade, slide, push, slideUp, zoom, wipe, blur, none
+- **44 effetti** di entrata/uscita, tra cui `rise` (righe che salgono da una maschera, stile keynote), `wordsRise`, `wordsUp`, `letters`, `lettersBlur`, `cascade`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`, `iris`, `flip`, `elastic`, `swing`, `skewIn`, `flicker` (insegna al neon), `focus`, `unfold`
+- **14 loop**: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing, bounce, orbit, heartbeat, flicker, glitch
+- **19 transizioni**: fade, slide, slideUp, slideDown, push, pushUp, whip, zoom, zoomIn, wipe, wipeLeft, wipeUp, wipeDown, barn, blur, circle, fadeBlack, flash, none
 - **Sfondi**: colore, gradiente animato, "glow" (luci morbide in movimento), immagine con Ken Burns, **video b-roll**
 - **Effetti sonori (SFX)** generati da Lampo e sincronizzati da soli con le animazioni (`"sfx": true`): whoosh, pop, tick, impact, boom, riser, ding e altri, senza file audio e senza problemi di diritti
 - **Audio** con fade in/out, **font personalizzati**, **layer globali** (logo/watermark), vignettatura
@@ -125,7 +127,7 @@ Esempi in italiano in `examples/it/`: `pizzeria.json`, `barbiere.json`, `lancio-
 src/           motore: spec.js (validazione), frame.js (disegno), effects.js, render.js (parallelo)
 mcp/           server.js (stdio + HTTP, zero dipendenze), launch.js (auto-installa il motore)
 cli/lampo.js   riga di comando
-skills/lampo/  SKILL.md per Claude e Gemini (rigenera con scripts/build-skill.sh)
+skills/lampo/  SKILL.md + references/ (tipi di video, stili, blueprint, regole di motion, revisione) per Claude e Gemini
 .claude-plugin/, .mcp.json      plugin Claude Code
 gemini-extension.json, GEMINI.md estensione Gemini CLI
 bench/         benchmark contro il metodo browser

@@ -1,3 +1,4 @@
 #!/bin/sh
-# Rebuilds skills/lampo/SKILL.md from header + reference (single source of truth)
-cd "$(dirname "$0")/.." && cat scripts/skill-header.md src/guide.md > skills/lampo/SKILL.md && echo "SKILL.md updated"
+# Copies the spec reference (src/guide.md, single source of truth) into the skill's references.
+# The other references live in skills/lampo/references/ and are read directly by the MCP server and CLI.
+cd "$(dirname "$0")/.." && cp src/guide.md skills/lampo/references/spec.md && echo "skills/lampo/references/spec.md updated"

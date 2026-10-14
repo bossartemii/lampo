@@ -1,0 +1,74 @@
+{
+  "format": "9:16",
+  "fps": 30,
+  "sfx": true,
+  "theme": { "font": "Inter", "color": "#ffffff", "accent": "#FFD60A", "background": "#0A0A0A", "locale": "it-IT" },
+  "sounds": [ { "sound": "riser", "at": 13.2, "duration": 1.0, "volume": 0.6 } ],
+  "scenes": [
+    {
+      "duration": 3.4,
+      "background": { "type": "glow", "base": "#0A0A0A", "colors": ["#3a3a3a", "#1c1c1c"], "intensity": 0.5, "speed": 0.3 },
+      "layers": [
+        { "text": "VIDEO", "size": 560, "weight": 900, "opacity": 0.05, "wrap": false, "fit": false, "loop": { "effect": "drift", "amount": 140 } },
+        { "text": "Montare.", "size": 200, "weight": 900, "y": "46%", "start": 0.15, "end": 0.8, "in": { "effect": "stamp", "duration": 0.3 } },
+        { "text": "Animare.", "size": 200, "weight": 900, "y": "46%", "start": 0.8, "end": 1.45, "in": { "effect": "zoomOut", "duration": 0.35 } },
+        { "text": "Esportare.", "size": 200, "weight": 900, "y": "46%", "start": 1.45, "end": 2.0, "in": { "effect": "skewIn", "duration": 0.35 } },
+        { "text": "Per **un** video?", "size": 130, "weight": 900, "y": "46%", "start": 2.0, "in": { "effect": "wordsPop", "stagger": 0.08 }, "loop": { "effect": "shake", "amount": 3, "delay": 0.8 } },
+        { "type": "path", "shape": "underline", "w": 200, "h": 40, "x": "45%", "y": "50%", "color": "#FFD60A", "start": 2.4, "in": { "effect": "draw", "duration": 0.35 } }
+      ]
+    },
+    {
+      "duration": 3.2,
+      "background": "#000000",
+      "layers": [
+        { "type": "rect", "w": 40, "h": 40, "color": "#ffffff", "y": "50%",
+          "keyframes": [ { "t": 0, "w": 40, "h": 40, "radius": 20, "scale": 0 }, { "t": 0.25, "scale": 1, "easing": "backOut" }, { "t": 0.65, "w": 560, "h": 8, "radius": 4 }, { "t": 1.1, "w": 640, "h": 160, "radius": 80, "easing": "backOut" } ] },
+        { "text": "LAMPO", "size": 92, "weight": 900, "letterSpacing": 12, "color": "#000000", "y": "50%", "start": 1.05, "in": { "effect": "glitch", "duration": 0.5 }, "sfx": "boom" },
+        { "type": "path", "shape": "spark", "w": 90, "h": 90, "x": "86%", "y": "44%", "color": "#FFD60A", "start": 1.2, "in": "draw" },
+        { "text": "Video da JSON. In secondi.", "size": 46, "weight": 500, "color": "#bdbdbd", "y": "57%", "start": 1.6, "in": "wordsRise" }
+      ]
+    },
+    {
+      "duration": 3.4,
+      "transition": { "type": "whip", "duration": 0.35 },
+      "background": { "type": "gradient", "colors": ["#0b0b0b", "#1a1a1a"], "angle": 160, "animate": 8 },
+      "layers": [
+        { "text": "TEMPO DI RENDER", "size": 34, "weight": 600, "letterSpacing": 8, "color": "#8e8e8e", "y": "35%", "in": { "effect": "fadeDown", "delay": 0.15 } },
+        { "type": "counter", "from": 60, "to": 3, "suffix": " s", "size": 240, "weight": 900, "color": ["#ffffff", "#FFD60A"], "y": "45%", "countDuration": 1.3, "in": { "effect": "popIn", "delay": 0.25 }, "loop": { "effect": "heartbeat", "amount": 0.04, "delay": 1.8 } },
+        { "type": "rect", "w": 760, "h": 18, "radius": 9, "color": "rgba(255,255,255,0.12)", "y": "56%", "in": { "effect": "fade", "delay": 0.3 } },
+        { "type": "rect", "w": 760, "h": 18, "radius": 9, "color": ["#ffffff", "#FFD60A"], "y": "56%", "in": { "effect": "grow", "delay": 0.4, "duration": 1.3, "easing": "out" } },
+        { "text": "20× più veloce di un browser", "size": 40, "weight": 700, "color": "#0A0A0A", "bg": { "color": "#FFD60A", "radius": 40, "padding": 22 }, "y": "64%", "in": { "effect": "elastic", "delay": 1.7 } }
+      ]
+    },
+    {
+      "duration": 3.6,
+      "background": "#F2F2F0",
+      "layers": [
+        { "type": "line", "w": 840, "h": 4, "x": 120, "y": "37%", "anchor": "left", "color": "#0A0A0A", "in": "grow" },
+        { "text": "Fatto per", "size": 90, "weight": 500, "color": "#0A0A0A", "x": 120, "y": "42%", "anchor": "left", "align": "left", "in": { "effect": "fadeUp", "delay": 0.1 } },
+        { "text": "reel", "size": 150, "weight": 900, "color": "#0A0A0A", "x": 120, "y": "50%", "anchor": "left", "align": "left", "start": 0.5, "end": 1.1, "in": { "effect": "fade", "duration": 0.04 }, "sfx": false },
+        { "text": "spot", "size": 150, "weight": 900, "color": "#0A0A0A", "x": 120, "y": "50%", "anchor": "left", "align": "left", "start": 1.1, "end": 1.6, "in": { "effect": "fade", "duration": 0.04 }, "sfx": false },
+        { "text": "TikTok", "size": 150, "weight": 900, "color": "#0A0A0A", "x": 120, "y": "50%", "anchor": "left", "align": "left", "start": 1.6, "end": 2.0, "in": { "effect": "fade", "duration": 0.04 }, "sfx": false },
+        { "text": "intro", "size": 150, "weight": 900, "color": "#0A0A0A", "x": 120, "y": "50%", "anchor": "left", "align": "left", "start": 2.0, "end": 2.3, "in": { "effect": "fade", "duration": 0.04 }, "sfx": false },
+        { "text": "lanci", "size": 150, "weight": 900, "color": "#0A0A0A", "x": 120, "y": "50%", "anchor": "left", "align": "left", "start": 2.3, "end": 2.52, "in": { "effect": "fade", "duration": 0.04 }, "sfx": false },
+        { "text": "te.", "size": 150, "weight": 900, "color": "#0A0A0A", "x": 120, "y": "50%", "anchor": "left", "align": "left", "start": 2.52, "in": { "effect": "stamp", "duration": 0.35 } },
+        { "type": "path", "shape": "underline", "w": 190, "h": 46, "x": 120, "y": "54.5%", "anchor": "left", "color": "#FFD60A", "start": 2.82, "in": { "effect": "draw", "duration": 0.35 } },
+        { "text": "LAMPO — MOTION DA JSON", "size": 28, "weight": 600, "letterSpacing": 6, "color": "#8a8a86", "x": 120, "y": "78%", "anchor": "left", "align": "left", "in": { "effect": "fade", "delay": 0.4 } }
+      ]
+    },
+    {
+      "duration": 4.4,
+      "transition": { "type": "circle", "duration": 0.6 },
+      "background": { "type": "glow", "base": "#06060a", "colors": ["#FFD60A", "#5a5a5a"], "intensity": 0.35, "speed": 0.25 },
+      "layers": [
+        { "text": "Lampo", "size": 170, "weight": 900, "y": "46%", "end": 1.4, "in": { "effect": "blurIn", "delay": 0.2 }, "out": { "effect": "scaleIn", "duration": 0.3 } },
+        { "type": "rect", "w": 40, "h": 40, "color": "#FFD60A", "y": "46%", "start": 1.2,
+          "keyframes": [ { "t": 0, "w": 40, "h": 40, "radius": 20, "scale": 0 }, { "t": 0.2, "scale": 1, "easing": "backOut" }, { "t": 0.55, "w": 620, "h": 140, "radius": 70, "easing": "backOut" }, { "t": 2.0, "scale": 1 }, { "t": 2.08, "scale": 0.92 }, { "t": 2.25, "scale": 1 } ] },
+        { "text": "Provalo gratis", "size": 56, "weight": 800, "color": "#111111", "y": "46%", "start": 1.75, "in": "fadeUp",
+          "keyframes": [ { "t": 1.45, "scale": 1 }, { "t": 1.53, "scale": 0.92 }, { "t": 1.7, "scale": 1 } ] },
+        { "type": "cursor", "style": "arrow", "start": 2.3, "path": [ { "t": 0, "x": 900, "y": 1500 }, { "t": 0.9, "x": 770, "y": 905, "tap": true } ] },
+        { "text": "github.com/bossartemii/lampo", "size": 38, "weight": 600, "color": "#c7c7cc", "y": "54%", "start": 3.4, "in": "fadeUp" }
+      ]
+    }
+  ]
+}

@@ -182,7 +182,7 @@ function fittedPath(L, w, h) {
 
 // ---------- keyframes ----------
 
-const KF_PROPS = ['x', 'y', 'scale', 'rotate', 'opacity', 'w', 'h', 'r', 'radius', 'blur', 'rgb', 'size', 'color'];
+const KF_PROPS = ['x', 'y', 'scale', 'rotate', 'opacity', 'w', 'h', 'r', 'radius', 'blur', 'rgb', 'skew', 'size', 'color'];
 
 // colors: "#rgb", "#rrggbb", "#rrggbbaa", "rgb(...)", "rgba(...)"
 function parseColor(c) {

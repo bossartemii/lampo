@@ -16,7 +16,7 @@ const { describe } = require('../src/effects');
 const { SOUND_NAMES } = require('../src/sfx');
 
 const VERSION = require('../package.json').version;
-const GUIDE = fs.readFileSync(path.join(__dirname, '../src/guide.md'), 'utf8');
+const { guide, TOPICS } = require('../src/guide');
 const OUT_DIR = path.resolve(process.env.LAMPO_OUT || path.join(process.cwd(), 'lampo-out'));
 const PUBLIC_URL = process.env.LAMPO_PUBLIC_URL || null; // public HTTPS base URL
 const FILE_SECRET = process.env.LAMPO_FILE_SECRET || '';
@@ -50,8 +50,8 @@ const specProp = {
 const TOOLS = [
   {
     name: 'lampo_guide',
-    description: 'Read this first. Returns the full Lampo spec reference: formats, layers, effects, transitions and design recipes for short ads and social videos.',
-    inputSchema: { type: 'object', properties: {} },
+    description: 'Read this first. Without topic: the full Lampo spec reference (formats, layers, effects, transitions, sound). Topics for directing a great video: routes (video types), styles (visual styles), blueprints (ready shot templates with JSON), motion (motion-design rules), review (checklist and fixes), all.',
+    inputSchema: { type: 'object', properties: { topic: { type: 'string', enum: TOPICS, description: 'Default: spec' } } },
     annotations: { readOnlyHint: true },
   },
   {
@@ -142,7 +142,8 @@ async function callTool(name, args = {}, auth = { master: true }) {
     }
     switch (name) {
       case 'lampo_guide':
-        return text(GUIDE + '\n\n## Effect catalog\n' + JSON.stringify({ ...describe(), sounds: SOUND_NAMES }));
+        if (args.topic && args.topic !== 'spec') return text(guide(args.topic));
+        return text(guide('spec') + '\n\n## Effect catalog\n' + JSON.stringify({ ...describe(), sounds: SOUND_NAMES }));
       case 'lampo_validate': {
         const s = normalize(toSpec(args.spec), { baseDir });
         return text({ ok: true, duration: +s.duration.toFixed(2), scenes: s.scenes.length, size: `${s.outWidth}x${s.outHeight}`, frames: s.totalFrames });
@@ -213,7 +214,7 @@ async function handle(msg, auth) {
         protocolVersion: params?.protocolVersion || '2025-06-18',
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'lampo', title: 'Lampo — fast video from JSON', version: VERSION },
-        instructions: 'Lampo renders short videos (ads, reels, intros) from a JSON spec. Call lampo_guide once, write the spec, check it with lampo_preview, then lampo_render.',
+        instructions: 'Lampo renders short videos (ads, reels, intros) from a JSON spec. Call lampo_guide once (topics routes, styles, blueprints, motion, review for direction), write the spec, check it with lampo_preview, then lampo_render.',
       });
     case 'ping':
       return reply({});

@@ -26,7 +26,7 @@
     "preview": "node cli/lampo.js preview examples/coffee.json",
     "render": "node cli/lampo.js render examples/coffee.json",
     "mcp": "node mcp/server.js",
-    "test": "node test/smoke.js",
+    "test": "node test/smoke.js && node test/skill.js",
     "keys": "node cli/keys.js"
   },
   "keywords": [

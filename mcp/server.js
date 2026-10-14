@@ -25,6 +25,7 @@ const PUBLIC_URL = process.env.LAMPO_PUBLIC_URL || (process.env.SPACE_HOST ? `ht
 // signs download links; without one, a random secret per start (links only live 15 minutes anyway)
 const FILE_SECRET = process.env.LAMPO_FILE_SECRET || (process.argv.includes('--http') ? crypto.randomBytes(32).toString('hex') : '');
 const KEYS_FILE = path.resolve(process.env.LAMPO_KEYS_FILE || path.join(process.cwd(), 'keys.json'));
+const INLINE_MAX = 8 * 1024 * 1024; // lampo_render inline: biggest MP4 returned in the response
 const BILLING_URL = process.env.LAMPO_BILLING_URL || 'https://github.com/sponsors/bossartemii';
 
 function loadKeys() {
@@ -97,6 +98,7 @@ const TOOLS = [
         spec: specProp,
         output: { type: 'string', description: 'Output file name or path, e.g. "coffee-ad.mp4". Default: video-<timestamp>.mp4' },
         quality: { type: 'string', enum: ['draft', 'standard', 'high'] },
+        inline: { type: 'boolean', description: 'Also return the MP4 itself in the response (embedded resource, base64), for agents that cannot download from the server. Up to 8 MB; use quality "draft" to keep it small.' },
       },
       required: ['spec'],
     },
@@ -256,6 +258,17 @@ async function callTool(name, args = {}, auth = { master: true }) {
           const sig = crypto.createHmac('sha256', FILE_SECRET)
             .update(`${name}:${expires}`).digest('hex');
           r.url = `${PUBLIC_URL.replace(/\/$/, '')}/files/${encodeURIComponent(name)}?expires=${expires}&sig=${sig}`;
+        }
+        if (args.inline) {
+          // the video itself, for agents whose network can't reach this server's download link
+          const bytes = fs.statSync(file).size;
+          if (bytes > INLINE_MAX) {
+            r.inline = `not included: ${(bytes / 1048576).toFixed(1)} MB is over the ${INLINE_MAX / 1048576} MB inline limit. Render with quality "draft" or a shorter spec, or download the url.`;
+            return text(r);
+          }
+          const out = text(r);
+          out.content.push({ type: 'resource', resource: { uri: `lampo://renders/${path.basename(file)}`, mimeType: 'video/mp4', blob: fs.readFileSync(file).toString('base64') } });
+          return out;
         }
         return text(r);
       }

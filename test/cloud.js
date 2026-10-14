@@ -76,6 +76,13 @@ const MASTER = 'm'.repeat(40);
     assert.ok((await mcp.json()).result.tools.some((t) => t.name === 'lampo_render'));
     assert.strictEqual((await post(`/mcp/lk_${'0'.repeat(48)}`, { jsonrpc: '2.0', id: 1, method: 'tools/list' })).status, 401);
 
+    // inline: the MP4 comes back in the MCP response (master key: no credits needed)
+    const il = await (await post('/mcp', { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'lampo_render', arguments: { spec, inline: true } } }, MASTER)).json();
+    const res = il.result.content.find((c) => c.type === 'resource');
+    assert.ok(res, JSON.stringify(il).slice(0, 300));
+    assert.strictEqual(res.resource.mimeType, 'video/mp4');
+    assert.strictEqual(Buffer.from(res.resource.blob, 'base64').subarray(4, 8).toString(), 'ftyp');
+
   } finally {
     srv.kill();
   }

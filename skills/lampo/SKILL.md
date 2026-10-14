@@ -110,6 +110,7 @@ Don't skip this step. Defects that are obvious in the image (cut text, overlaps,
 ## 6. Render and deliver
 
 - `lampo_render` with `quality: "standard"` (`high` for big screens, `draft` only to judge timing).
+- On Lampo Cloud the result has a download `url` (valid 15 minutes). If your environment can't reach it (a sandbox that blocks the host), render again with `"inline": true` (and `quality: "draft"` for long videos): the MP4 comes back in the response itself, up to 8 MB.
 - Report: the file path, length and format, the style and the shot plan in 3–4 lines.
 - Offer exactly one variation that would make it better or reach further (another hook, 1:1 cut, a version with their music). Don't list ten.
 

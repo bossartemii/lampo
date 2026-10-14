@@ -14,6 +14,7 @@ It is the same `mcp/server.js`, started with `--http`:
 | `POST /api/render?key=<key>` | the same with the key in the URL: a browser can call it as a simple request, without a CORS preflight (the playground does) |
 | `POST /api/validate` `{ "spec": {…} }` | REST validation → `{ ok, duration, scenes, size }` or `{ error }` with what to fix |
 | `GET /files/<name>?expires&sig` | the rendered MP4, behind a signed link valid 15 minutes |
+| `lampo_render` with `"inline": true` | the MP4 also comes back inside the MCP response (base64, up to 8 MB), for agents whose sandbox can't reach the download link |
 | `GET /health` | `{ ok, version, busy }` |
 | `POST /admin/keys` (master key) | create, top up, revoke client keys — or use `cli/cloud.js` |
 

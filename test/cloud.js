@@ -20,7 +20,7 @@ function fakeStripe() {
     if (req.method === 'POST' && req.url === '/v1/checkout/sessions') {
       const f = new URLSearchParams(Buffer.concat(chunks).toString());
       const id = `cs_test_${sessions.size + 1}abcdefgh`;
-      const s = { id, url: `https://checkout.stripe.test/${id}`, payment_status: 'unpaid', amount: f.get('line_items[0][price_data][unit_amount]'), success_url: f.get('success_url'), cancel_url: f.get('cancel_url'), metadata: { spec_hash: f.get('metadata[spec_hash]') } };
+      const s = { id, url: `https://checkout.stripe.test/${id}`, payment_status: 'unpaid', amount: f.get('line_items[0][price_data][unit_amount]'), success_url: f.get('success_url'), cancel_url: f.get('cancel_url'), taxCode: f.get('line_items[0][price_data][product_data][tax_code]'), metadata: { spec_hash: f.get('metadata[spec_hash]') } };
       sessions.set(id, s);
       return send(s);
     }
@@ -77,6 +77,7 @@ const MASTER = 'm'.repeat(40);
     const sid = /cs_test_\w+/.exec(buy.headers.get('location'))[0];
     const sess = stripe.sessions.get(sid);
     assert.strictEqual(sess.amount, '299');
+    assert.strictEqual(sess.taxCode, 'txcd_10103000', 'product tax code for Stripe Managed Payments');
     assert.strictEqual(sess.metadata.spec_hash, anon.clean.buyUrl.split('/').pop());
     assert.strictEqual(sess.success_url, `${base}/paid?session_id={CHECKOUT_SESSION_ID}`);
     // not paid yet → no clean video

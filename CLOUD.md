@@ -100,6 +100,8 @@ Setup, as secrets on the server (on Hugging Face: Settings → Variables and sec
 | `LAMPO_PRICE_CENTS` | price of one clean video in cents, default `299` |
 | `LAMPO_CURRENCY` | default `eur` |
 | `LAMPO_RETURN_ORIGINS` | sites the buyer may return to after paying, default `https://bossartemii.github.io` (the playground) |
+| `LAMPO_STRIPE_TAX_CODE` | product tax code sent to Stripe, default `txcd_10103000` (software as a service). Required when Stripe **Managed Payments** is on (the default on new accounts: Stripe is the seller of record and handles VAT) |
+| `LAMPO_STRIPE_MANAGED` | `false` turns Managed Payments off for Lampo's checkouts (then taxes are yours to handle) |
 | `LAMPO_ANON_PER_HOUR` | free watermarked renders per hour per address, default `20` |
 
 `/health` says whether payments are on (`"payments": true, "price": "€2.99"`); the playground shows the pay button only then.

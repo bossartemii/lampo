@@ -37,6 +37,10 @@ const PRICE_CENTS = Number(process.env.LAMPO_PRICE_CENTS || 299);
 const CURRENCY = (process.env.LAMPO_CURRENCY || 'eur').toLowerCase();
 // pages allowed to get the buyer back after paying (the playground)
 const RETURN_ORIGINS = (process.env.LAMPO_RETURN_ORIGINS || 'https://bossartemii.github.io').split(',').map((x) => x.trim()).filter(Boolean);
+// Stripe Managed Payments (on by default on new accounts) needs a product tax code:
+// txcd_10103000 = SaaS, personal use (Stripe's code for online software). LAMPO_STRIPE_MANAGED=false turns it off.
+const STRIPE_TAX_CODE = process.env.LAMPO_STRIPE_TAX_CODE || 'txcd_10103000';
+const STRIPE_MANAGED = process.env.LAMPO_STRIPE_MANAGED;
 const ANON_PER_HOUR = Number(process.env.LAMPO_ANON_PER_HOUR || 20);
 const SPECS_DIR = path.join(OUT_DIR, 'specs');
 const priceLabel = () => new Intl.NumberFormat('en', { style: 'currency', currency: CURRENCY.toUpperCase() }).format(PRICE_CENTS / 100);
@@ -465,6 +469,8 @@ async function checkout(hash, returnUrl) {
     'line_items[0][price_data][currency]': CURRENCY,
     'line_items[0][price_data][unit_amount]': String(PRICE_CENTS),
     'line_items[0][price_data][product_data][name]': 'Lampo video without watermark',
+    ...(STRIPE_TAX_CODE ? { 'line_items[0][price_data][product_data][tax_code]': STRIPE_TAX_CODE } : {}),
+    ...(STRIPE_MANAGED === 'false' ? { 'managed_payments[enabled]': 'false' } : {}),
     success_url: success,
     cancel_url: cancel,
     client_reference_id: hash,

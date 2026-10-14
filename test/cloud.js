@@ -71,9 +71,31 @@ const MASTER = 'm'.repeat(40);
     assert.ok((await mcp.json()).result.tools.some((t) => t.name === 'lampo_render'));
     assert.strictEqual((await post(`/mcp/lk_${'0'.repeat(48)}`, { jsonrpc: '2.0', id: 1, method: 'tools/list' })).status, 401);
 
-    console.log('ok · cloud: keys, credits, REST, MCP key in URL, signed files, media rules');
   } finally {
     srv.kill();
+  }
+
+  // Hugging Face Spaces setup: public URL from SPACE_HOST, keys from the LAMPO_KEYS secret,
+  // no LAMPO_FILE_SECRET (a random one per start)
+  const port2 = await freePort();
+  const seeded = `lk_${'a'.repeat(48)}`;
+  const hf = spawn(process.execPath, [path.join(__dirname, '../mcp/server.js'), '--http', String(port2)], {
+    env: { ...process.env, PORT: String(port2), LAMPO_TOKEN: MASTER, LAMPO_FILE_SECRET: '', LAMPO_PUBLIC_URL: '', SPACE_HOST: 'someone-lampo.hf.space', LAMPO_KEYS: JSON.stringify({ [seeded]: { label: 'seed', credits: 2 } }), LAMPO_OUT: path.join(dir, 'out2'), LAMPO_KEYS_FILE: path.join(dir, 'data2/keys.json') },
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+  let log2 = '';
+  hf.stderr.on('data', (d) => { log2 += d; });
+  try {
+    for (let i = 0; i < 50 && !log2.includes('listening'); i++) await new Promise((r) => setTimeout(r, 100));
+    assert.ok(log2.includes('1 client key(s) from LAMPO_KEYS'), log2);
+    const r = await fetch(`http://127.0.0.1:${port2}/api/render`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${seeded}` }, body: JSON.stringify({ spec: { format: '1:1', fps: 12, quality: 'draft', scenes: [{ duration: 0.5, layers: [{ text: 'HF' }] }] } }) });
+    const out = await r.json();
+    assert.strictEqual(r.status, 200, JSON.stringify(out));
+    assert.ok(out.url.startsWith('https://someone-lampo.hf.space/files/'), out.url);
+    assert.strictEqual(out.creditsLeft, 1);
+    console.log('ok · cloud: keys, credits, REST, MCP key in URL, signed files, media rules, Hugging Face setup');
+  } finally {
+    hf.kill();
     fs.rmSync(dir, { recursive: true, force: true });
   }
 })().catch((e) => { console.error(e); process.exit(1); });

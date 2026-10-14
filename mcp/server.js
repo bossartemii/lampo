@@ -20,8 +20,10 @@ const { SOUND_NAMES } = require('../src/sfx');
 const VERSION = require('../package.json').version;
 const { guide, TOPICS } = require('../src/guide');
 const OUT_DIR = path.resolve(process.env.LAMPO_OUT || path.join(process.cwd(), 'lampo-out'));
-const PUBLIC_URL = process.env.LAMPO_PUBLIC_URL || null; // public HTTPS base URL
-const FILE_SECRET = process.env.LAMPO_FILE_SECRET || '';
+// public HTTPS base URL; on Hugging Face Spaces it is read from SPACE_HOST
+const PUBLIC_URL = process.env.LAMPO_PUBLIC_URL || (process.env.SPACE_HOST ? `https://${process.env.SPACE_HOST}` : null);
+// signs download links; without one, a random secret per start (links only live 15 minutes anyway)
+const FILE_SECRET = process.env.LAMPO_FILE_SECRET || (process.argv.includes('--http') ? crypto.randomBytes(32).toString('hex') : '');
 const KEYS_FILE = path.resolve(process.env.LAMPO_KEYS_FILE || path.join(process.cwd(), 'keys.json'));
 const BILLING_URL = process.env.LAMPO_BILLING_URL || 'https://github.com/sponsors/bossartemii';
 
@@ -29,6 +31,24 @@ function loadKeys() {
   try { return JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8')); }
   catch { return {}; }
 }
+// Hosts without a persistent disk (Hugging Face Spaces free tier): client keys come from the
+// LAMPO_KEYS secret, JSON like {"lk_…": {"label": "Mario", "credits": 50}}, added at every start
+// if the keys file doesn't have them. Credits spent are kept until the next restart.
+function seedKeys() {
+  if (!process.env.LAMPO_KEYS) return 0;
+  let seed;
+  try { seed = JSON.parse(process.env.LAMPO_KEYS); } catch { throw new Error('LAMPO_KEYS must be JSON: {"lk_...": {"label": "...", "credits": 50}}'); }
+  const keys = loadKeys();
+  let added = 0;
+  for (const [k, v] of Object.entries(seed)) {
+    if (k.length < 32) throw new Error(`LAMPO_KEYS: key "${k.slice(0, 6)}…" is shorter than 32 characters`);
+    if (!keys[k]) { keys[k] = { label: v.label || 'client', credits: Number(v.credits ?? 10), used: 0, createdAt: new Date().toISOString() }; added++; }
+  }
+  fs.mkdirSync(path.dirname(KEYS_FILE), { recursive: true });
+  saveKeys(keys);
+  return added;
+}
+
 function saveKeys(keys) {
   fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2) + '\n');
 }
@@ -339,6 +359,9 @@ function startHttp(port) {
   if (FILE_SECRET.length < 32) {
     throw new Error('HTTP mode requires LAMPO_FILE_SECRET with at least 32 characters.');
   }
+  const seeded = seedKeys();
+  if (seeded) console.error(`Lampo Cloud: ${seeded} client key(s) from LAMPO_KEYS`);
+  if (!PUBLIC_URL) console.error('Lampo Cloud: LAMPO_PUBLIC_URL is not set, renders will not return download links');
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
     res.setHeader('Access-Control-Allow-Origin', '*');

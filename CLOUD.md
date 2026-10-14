@@ -24,6 +24,24 @@ What the server enforces:
 
 ## 1. Deploy
 
+### Hugging Face Spaces (free, no credit card)
+Free CPU Spaces have 2 vCPU and 16 GB of RAM, plenty for Lampo. Everything happens in the browser:
+
+1. On huggingface.co: **New Space** → name it (e.g. `lampo`) → SDK **Docker** → template **Blank** → hardware **CPU basic (free)** → **Public** (a private Space can't be reached by ChatGPT or Claude.ai).
+2. **Files → Add file → Upload files**: upload [`cloud/huggingface/Dockerfile`](cloud/huggingface/Dockerfile) and [`cloud/huggingface/README.md`](cloud/huggingface/README.md) (it replaces the Space's README; the header at the top configures the Space).
+3. **Settings → Variables and secrets → New secret**:
+   - `LAMPO_TOKEN`: your master key, any random string of at least 32 characters
+   - `LAMPO_KEYS` (optional): client keys as JSON, `{"lk_<at least 32 characters>": {"label": "Mario", "credits": 50}}`
+4. Wait for the build (a few minutes), then open `https://<user>-<space>.hf.space/health`.
+
+On Spaces the public URL is detected by itself (`SPACE_HOST`) and the link-signing secret is generated at every start,
+so `LAMPO_PUBLIC_URL` and `LAMPO_FILE_SECRET` are not needed. The free tier has no persistent disk: keys come back
+from `LAMPO_KEYS` at every restart, with their credits reset. A free Space sleeps after 48 hours without visits and
+wakes up on the next request (about a minute). The Dockerfile downloads Lampo from GitHub `main`: to update,
+**Settings → Factory rebuild**.
+
+### Other hosts
+
 You need three secrets:
 
 ```bash
@@ -57,6 +75,8 @@ To try it without a domain: `cloudflared tunnel --url http://localhost:3333`.
 Check it: `curl https://video.example.com/health`
 
 ## 2. Create keys
+
+On a host with a disk (Fly.io, Render, a VPS) keys are created and topped up live; on Hugging Face put them in the `LAMPO_KEYS` secret.
 
 ```bash
 export LAMPO_CLOUD_URL=https://video.example.com LAMPO_TOKEN=<master key>

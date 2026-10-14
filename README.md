@@ -9,7 +9,7 @@ Works as a **Claude Code plugin**, a **Gemini CLI extension**, an **MCP server**
 
 [![GitHub stars](https://img.shields.io/github/stars/bossartemii/lampo?style=social)](https://github.com/bossartemii/lampo/stargazers) &nbsp; [![License](https://img.shields.io/badge/license-Apache%202.0-black)](LICENSE)
 
-[Website](https://bossartemii.github.io/lampo/) · [Gallery](#gallery) · [Quick start](#quick-start) · [Why it's fast](#why-its-fast) · [Spec reference](src/guide.md) · [Examples](examples/) · [Italiano](README.it.md)
+[Website](https://bossartemii.github.io/lampo/) · [**Playground**](https://bossartemii.github.io/lampo/playground/) · [Gallery](#gallery) · [Quick start](#quick-start) · [Why it's fast](#why-its-fast) · [Spec reference](src/guide.md) · [Examples](examples/) · [Italiano](README.it.md)
 
 <img src="media/showreel.gif" height="420" alt="17-second showreel made with Lampo: kinetic type, a dot morphing into the logo, a counter, a word cycle and a clicked CTA"> &nbsp; <img src="media/coffee.gif" height="420" alt="9:16 coffee shop ad made with Lampo">
 
@@ -44,6 +44,10 @@ Lampo flips it around. The agent writes a short JSON spec with **named effects**
   ]
 }
 ```
+
+## Playground
+
+**[Try it in the browser →](https://bossartemii.github.io/lampo/playground/)** Write a spec, watch it play with sound as you type, and download the video. It's the real Lampo engine (the same `src/` as the CLI) bundled for the browser and encoded with WebCodecs: MP4 in Chrome, Edge and Safari, WebM in Firefox. Nothing is uploaded. Pick any example, blueprint or style as a starting point, and share a spec with a link.
 
 ## Gallery
 
@@ -149,12 +153,14 @@ command = "node"
 args = ["/path/to/lampo/mcp/launch.js"]
 ```
 
-### ChatGPT and Claude.ai on the web — remote MCP
-Web clients need an HTTPS server:
-```bash
-LAMPO_PUBLIC_URL=https://video.example.com LAMPO_TOKEN=secret node mcp/server.js --http 3333
-```
-Host it on any VPS (or try it with `cloudflared tunnel --url http://localhost:3333`), then add `https://…/mcp` as a connector. Rendered videos download from `/files/<name>.mp4`. `LAMPO_TOKEN` is optional and requires `Authorization: Bearer <token>`.
+### ChatGPT and Claude.ai — Lampo Cloud
+No install for the user: one HTTPS server renders for everyone. Deploy it on Fly.io, Render or any Docker host (`fly.toml`, `render.yaml` and the `Dockerfile` are in the repo), create keys with credits, and connect:
+
+- **Claude.ai / ChatGPT**: add a connector with the URL `https://your-host/mcp/lk_…`
+- **Claude Code, Cursor, Codex**: `https://your-host/mcp` with `Authorization: Bearer lk_…`
+- **Apps and the playground**: `POST /api/render { "spec": … }` → a signed MP4 link
+
+Keys, credits, limits, signed download links and media restricted to public https URLs are built in. Full guide: **[CLOUD.md](CLOUD.md)**.
 
 ## MCP tools
 
@@ -192,7 +198,9 @@ Full reference: [`src/guide.md`](src/guide.md) · Examples: [`examples/`](exampl
 - [x] 42 synthesized sounds
 - [ ] Auto-captions from audio (Whisper)
 - [ ] Template packs per industry (restaurants, real estate, gyms, SaaS)
-- [ ] **Lampo Cloud** — hosted MCP endpoint: no install, works in ChatGPT and Claude.ai, render on fast machines
+- [x] **Lampo Cloud** server — MCP over HTTPS for ChatGPT and Claude.ai, REST API, keys and credits, one-file deploy ([CLOUD.md](CLOUD.md))
+- [x] **Playground** — JSON in, video out, in the browser
+- [ ] Public hosted Lampo Cloud instance
 
 ## Support the project
 
@@ -207,13 +215,16 @@ Lampo is free and open source. If it saves you time:
 ```bash
 npm test                          # smoke test: every effect, transition, sound, image, audio + every skill snippet
 node scripts/build-media.js       # rebuild the README GIFs and the website videos from the specs
+node scripts/build-web.js         # rebuild the playground (engine bundle + examples) in docs/playground
 node bench/browser-baseline.js    # benchmark vs the browser pipeline (needs puppeteer)
 ./scripts/build-skill.sh          # copy src/guide.md into skills/lampo/references/spec.md
 ```
 
 ```
 src/          engine: spec (validation) · frame (drawing) · effects · render (parallel)
-mcp/          server.js (stdio + HTTP, zero deps) · launch.js (installs the engine on first run)
+mcp/          server.js (stdio + HTTP / Lampo Cloud, zero deps) · launch.js (installs the engine on first run)
+web/          browser shims + entry for the playground bundle
+docs/         website and playground (GitHub Pages)
 cli/          command line
 skills/lampo/ SKILL.md + references/ (routes, styles, blueprints, motion rules, review) for Claude Code and Gemini CLI
 ```

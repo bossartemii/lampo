@@ -14,6 +14,14 @@ Funziona come **plugin per Claude Code**, **estensione per Gemini CLI**, **serve
 spec.json  →  motore Skia (niente browser)  →  N worker in parallelo  →  ffmpeg  →  video.mp4
 ```
 
+## Playground
+
+**[Provalo nel browser →](https://bossartemii.github.io/lampo/playground/)** Scrivi lo spec e il video si aggiorna mentre scrivi, con il suono; poi lo scarichi. È il vero motore di Lampo nel browser: MP4 in Chrome, Edge e Safari, WebM in Firefox, senza caricare niente su un server. Parti da un esempio, un blueprint o uno stile, e condividi lo spec con un link.
+
+## Lampo Cloud
+
+Niente installazione per chi lo usa: un server HTTPS fa il render per tutti, anche da **ChatGPT** e **Claude.ai** (connettore con l'URL `https://tuo-host/mcp/lk_…`), da Claude Code / Cursor / Codex (header `Authorization: Bearer lk_…`) e via API (`POST /api/render`). Chiavi con crediti, limiti, link di download firmati e solo media https pubblici. Deploy su Fly.io, Render o Docker: guida in **[CLOUD.md](CLOUD.md)**.
+
 ## Galleria
 
 ### 16 blueprint di scena
@@ -108,14 +116,8 @@ command = "node"
 args = ["/percorso/lampo/mcp/launch.js"]
 ```
 
-### ChatGPT e Claude.ai sul web (server remoto)
-I client web vogliono un server MCP raggiungibile via HTTPS:
-```bash
-LAMPO_PUBLIC_URL=https://video.tuodominio.it LAMPO_TOKEN=segreto node mcp/server.js --http 3333
-```
-Mettilo su un VPS / Railway / Fly, oppure provalo con un tunnel (`cloudflared tunnel --url http://localhost:3333`).
-Poi in ChatGPT (modalità sviluppatore → connettori) aggiungi `https://.../mcp`. I video si scaricano da `/files/<nome>.mp4`.
-`LAMPO_TOKEN` è facoltativo: richiede `Authorization: Bearer <token>`.
+### ChatGPT e Claude.ai sul web (Lampo Cloud)
+Serve un server HTTPS (`mcp/server.js --http`) con chiave master, segreto per i link e URL pubblico. Deploy su Fly.io (`fly.toml`), Render (`render.yaml`) o qualsiasi host Docker, poi in Claude.ai o ChatGPT aggiungi un connettore con l'URL `https://tuo-host/mcp/lk_…`. Tutti i passaggi in [CLOUD.md](CLOUD.md).
 
 ## Uso da CLI
 ```bash
@@ -184,6 +186,8 @@ test/smoke.js  test con ogni effetto, transizione, immagine e audio
 ## Roadmap
 1. Sottotitoli automatici da audio con Whisper
 2. Template pronti per settore (ristoranti, barbieri, immobiliari, palestre)
-3. Render in cloud a pagamento via API: il modello di business
+3. ✅ Lampo Cloud: server per ChatGPT e Claude.ai, API REST, chiavi e crediti ([CLOUD.md](CLOUD.md))
+4. ✅ Playground nel browser: JSON → video
+5. Istanza pubblica di Lampo Cloud già pronta
 
 Licenza Apache 2.0.

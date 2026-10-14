@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lampo Playground</title>
+<meta name="description" content="Write a Lampo JSON spec and watch the video render live in your browser. Download it as MP4, or render it on Lampo Cloud.">
+<meta property="og:title" content="Lampo Playground — JSON in, video out">
+<meta property="og:description" content="Write a Lampo spec, watch it play, download the video. The real Lampo engine, running in your browser.">
+<meta property="og:image" content="../media/blueprints-poster.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef0f3;
+    --ink: #000000;
+    --muted: #4a4f5a;
+    --line: #cfd3da;
+    --bolt: #ffe14d;
+    --signal: #2f5bff;
+    --bad: #c4231b;
+    --good: #0b7a3e;
+    --sans: "Instrument Sans", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.5 var(--sans); }
+  a { color: var(--signal); text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; border-radius: 4px; }
+  button, select, input { font: inherit; color: inherit; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1.5px solid var(--ink); flex-wrap: wrap; }
+  .brand { font-weight: 700; font-size: 20px; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .brand svg { width: 20px; height: 20px; }
+  .brand span { font: 600 13px var(--mono); background: var(--ink); color: var(--bolt); border-radius: 6px; padding: 2px 8px; }
+  header nav { display: flex; gap: 20px; font-size: 15px; }
+  header nav a { color: var(--ink); text-decoration: none; }
+  header nav a:hover { text-decoration: underline; }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 24px; border-bottom: 1.5px solid var(--line); }
+  .bar label { font-size: 14px; color: var(--muted); }
+  select, .btn { border: 1.5px solid var(--ink); border-radius: 999px; background: #fff; padding: 7px 14px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  select { padding-right: 32px; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-position: calc(100% - 17px) 55%, calc(100% - 12px) 55%; background-size: 5px 5px; background-repeat: no-repeat; max-width: 100%; }
+  .btn.primary { background: var(--ink); color: #fff; }
+  .btn.bolt { background: var(--bolt); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .spacer { flex: 1; }
+
+  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 440px); min-height: calc(100vh - 130px); }
+  .editor { display: flex; flex-direction: column; border-right: 1.5px solid var(--ink); min-width: 0; }
+  .editor-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font: 600 13px var(--mono); border-bottom: 1.5px solid var(--line); background: #fff; }
+  .editor-head span:last-child { color: var(--muted); font-weight: 400; }
+  textarea { flex: 1; width: 100%; min-height: 60vh; resize: none; border: 0; padding: 16px; font: 400 13.5px/1.65 var(--mono); background: #fff; color: #17181c; tab-size: 2; white-space: pre; overflow: auto; }
+  textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--signal); border-radius: 0; }
+  .status { padding: 10px 16px; border-top: 1.5px solid var(--ink); font: 400 13px/1.55 var(--mono); background: #fff; max-height: 30vh; overflow: auto; }
+  .status.ok { color: var(--good); }
+  .status.err { color: var(--bad); background: #fff5f4; }
+  .status ul { margin: 4px 0 0; padding-left: 18px; }
+
+  .stage { display: flex; flex-direction: column; gap: 16px; padding: 20px; align-items: stretch; }
+  .screen { position: relative; background: #000; border-radius: 22px; padding: 8px; box-shadow: 0 0 0 1.5px var(--ink); align-self: center; width: 100%; }
+  .screen.portrait { max-width: 340px; }
+  canvas#view { display: block; width: 100%; height: auto; border-radius: 15px; background: #111; }
+  .screen .msg[hidden] { display: none; }
+  .screen .msg { position: absolute; inset: 8px; display: grid; place-items: center; text-align: center; color: #c9ccd3; font-size: 14px; padding: 24px; border-radius: 15px; background: rgba(0,0,0,.6); }
+  .controls { display: grid; grid-template-columns: auto auto 1fr auto; gap: 10px; align-items: center; }
+  .icon { width: 42px; height: 42px; padding: 0; display: grid; place-items: center; border-radius: 50%; }
+  .icon svg { width: 18px; height: 18px; }
+  input[type=range] { width: 100%; accent-color: var(--ink); }
+  .time { font: 400 13px var(--mono); color: var(--muted); white-space: nowrap; }
+
+  .card { background: #fff; border: 1.5px solid var(--ink); border-radius: 14px; padding: 14px 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .progress { height: 8px; border: 1.5px solid var(--ink); border-radius: 99px; overflow: hidden; margin-top: 10px; background: var(--paper); }
+  .progress div { height: 100%; width: 0; background: var(--bolt); transition: width .15s; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .note.err { color: var(--bad); }
+  details summary { cursor: pointer; font-weight: 600; }
+  .field { display: grid; gap: 4px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .field input { border: 1.5px solid var(--ink); border-radius: 8px; padding: 7px 10px; font: 400 13px var(--mono); color: var(--ink); background: #fff; width: 100%; }
+  .result video { width: 100%; border-radius: 10px; margin-top: 10px; border: 1.5px solid var(--ink); background: #000; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.on { opacity: 1; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .editor { border-right: 0; border-bottom: 1.5px solid var(--ink); order: 2; }
+    .stage { order: 1; }
+    textarea { min-height: 50vh; }
+    header, .bar { padding-left: 16px; padding-right: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .progress div { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="../"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 1 4 14h6.5L9 23l11-14h-7z" fill="#ffe14d" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/></svg>Lampo <span>playground</span></a>
+  <nav aria-label="Main">
+    <a href="../">Home</a>
+    <a href="https://github.com/bossartemii/lampo/blob/main/src/guide.md">Spec reference</a>
+    <a href="https://github.com/bossartemii/lampo/blob/main/skills/lampo/references/blueprints.md">Blueprints</a>
+    <a href="https://github.com/bossartemii/lampo">GitHub</a>
+  </nav>
+</header>
+
+<div class="bar">
+  <label for="example">Start from</label>
+  <select id="example" aria-label="Load an example"></select>
+  <span class="spacer"></span>
+  <button class="btn" id="share" type="button">Copy share link</button>
+  <button class="btn" id="format" type="button" title="Format the JSON">Tidy JSON</button>
+</div>
+
+<main>
+  <section class="editor" aria-label="JSON spec">
+    <div class="editor-head"><span>spec.json</span><span id="size"></span></div>
+    <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Lampo JSON spec. The preview updates as you type."></textarea>
+    <div class="status" id="status" role="status" aria-live="polite">Loading the engine…</div>
+  </section>
+
+  <section class="stage" aria-label="Video preview">
+    <div class="screen portrait" id="screen">
+      <canvas id="view" width="540" height="960" aria-label="Live preview of the video"></canvas>
+      <div class="msg" id="msg">Loading…</div>
+    </div>
+    <div class="controls">
+      <button class="btn icon primary" id="play" type="button" aria-label="Play"><svg viewBox="0 0 24 24" id="playIcon" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg></button>
+      <button class="btn icon" id="sound" type="button" aria-pressed="true" aria-label="Sound on"><svg viewBox="0 0 24 24" id="soundIcon" aria-hidden="true"></svg></button>
+      <input type="range" id="scrub" min="0" max="1000" value="0" step="1" aria-label="Seek">
+      <span class="time" id="time">0.00 / 0.00 s</span>
+    </div>
+
+    <div class="card">
+      <h2>Download the video</h2>
+      <p>Encoded in your browser, frame by frame, with sound. Nothing is uploaded.</p>
+      <div class="row">
+        <select id="quality" aria-label="Export quality">
+          <option value="0.5">Draft — half size, fastest</option>
+          <option value="1" selected>Full size</option>
+        </select>
+        <button class="btn bolt" id="download" type="button">Download</button>
+      </div>
+      <div class="progress" hidden id="dlBar"><div></div></div>
+      <div class="note" id="dlNote" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <details id="cloudBox">
+        <summary>Render on Lampo Cloud</summary>
+        <p style="margin-top:8px">The same spec rendered by the Lampo server: H.264 MP4 on fast machines, also from ChatGPT and Claude.ai. Needs a Lampo Cloud URL and a key.</p>
+        <label class="field">Cloud URL <input id="cloudUrl" type="url" placeholder="https://your-lampo-cloud.example.com" autocomplete="off"></label>
+        <label class="field">Key <input id="cloudKey" type="password" placeholder="lk_…" autocomplete="off"></label>
+        <div class="row" style="margin-top:12px"><button class="btn primary" id="cloudGo" type="button">Render MP4 on the cloud</button></div>
+        <div class="note" id="cloudNote" role="status" aria-live="polite"></div>
+        <div class="result" id="cloudResult"></div>
+      </details>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js"></script>
+<script src="lampo.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const code = $('code'), status = $('status'), view = $('view'), msg = $('msg'), scrub = $('scrub');
+  const PREVIEW_SCALE = 0.5;
+  const cfg = window.LAMPO_PLAYGROUND || {};
+
+  let examples = [];
+  let spec = null, rend = null, building = 0;
+  let t = 0, playing = false, startedAt = 0, startT = 0;
+  let audioCtx = null, audioSrc = null, audioBuf = null, audioFor = null, soundOn = true;
+  let drawing = false;
+
+  const toast = (text) => { const el = $('toast'); el.textContent = text; el.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('on'), 1800); };
+  const fmt = (s) => s.toFixed(2);
+
+  // ---------- share links: the spec, deflated, in the URL hash ----------
+  const b64url = (bytes) => {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+  const unb64url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+  async function pack(text) {
+    const s = new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return b64url(new Uint8Array(await new Response(s).arrayBuffer()));
+  }
+  async function unpack(s) {
+    const st = new Blob([unb64url(s)]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Response(st).text();
+  }
+
+  // ---------- spec → renderer ----------
+  function showErrors(e) {
+    const lines = (e && e.problems) || String(e && e.message || e).split('\n').filter(Boolean);
+    status.className = 'status err';
+    status.innerHTML = '';
+    const head = document.createElement('div');
+    head.textContent = lines.length > 1 ? `${lines.length} problems to fix:` : 'Problem to fix:';
+    const ul = document.createElement('ul');
+    for (const l of lines) { const li = document.createElement('li'); li.textContent = l.replace(/^Invalid spec:\s*/, ''); ul.appendChild(li); }
+    status.append(head, ul);
+  }
+
+  async function build() {
+    const my = ++building;
+    let s;
+    try { s = Lampo.prepare(code.value, { scale: PREVIEW_SCALE, quality: 'standard' }); }
+    catch (e) { showErrors(e); return; }
+    // only show the overlay when loading is slow, so typing doesn't flicker
+    const slow = setTimeout(() => { if (my === building) { msg.hidden = false; msg.textContent = 'Loading media…'; } }, 250);
+    let r;
+    try { r = await Lampo.renderer(s); }
+    catch (e) { clearTimeout(slow); if (my === building) { showErrors(e); msg.hidden = false; msg.textContent = 'Could not load the media this spec uses.'; } return; }
+    clearTimeout(slow);
+    if (my !== building) { r.close(); return; }
+    if (rend) rend.close();
+    spec = s; rend = r;
+    view.width = r.width; view.height = r.height;
+    $('screen').classList.toggle('portrait', s.height > s.width);
+    status.className = 'status ok';
+    status.textContent = `✓ valid · ${fmt(s.duration)} s · ${s.width}×${s.height} · ${s.fps} fps · ${s.scenes.length} scene${s.scenes.length > 1 ? 's' : ''}${s.sfx ? ' · sound effects on' : ''}`;
+    $('size').textContent = `${(new Blob([code.value]).size / 1024).toFixed(1)} KB`;
+    msg.hidden = true;
+    audioBuf = null; audioFor = null;
+    t = Math.min(t, s.duration);
+    if (playing) { stopAudio(); startAudio(); startedAt = performance.now(); startT = t; }
+    draw();
+    if (Lampo.canEncode && !Lampo.canEncode()) { $('download').disabled = true; $('dlNote').textContent = 'This browser cannot encode video (no WebCodecs). Use Chrome, Edge or Safari, or the cloud below.'; }
+  }
+
+  async function draw() {
+    if (!rend || drawing) return;
+    drawing = true;
+    try {
+      if (rend.hasVideo) await rend.prepare(t);
+      rend.renderAt(t);
+      view.getContext('2d').drawImage(rend.canvas, 0, 0);
+    } catch (e) { showErrors(e); }
+    drawing = false;
+    scrub.value = String(Math.round((t / spec.duration) * 1000));
+    $('time').textContent = `${fmt(t)} / ${fmt(spec.duration)} s`;
+  }
+
+  // ---------- playback ----------
+  async function startAudio() {
+    if (!soundOn || !spec) return;
+    try {
+      audioCtx = audioCtx || new AudioContext();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      const key = code.value;
+      if (audioFor !== key) { audioBuf = await Lampo.soundtrack(Lampo.prepare(code.value)); audioFor = key; }
+      if (!audioBuf || !playing) return;
+      audioSrc = audioCtx.createBufferSource();
+      audioSrc.buffer = audioBuf;
+      audioSrc.connect(audioCtx.destination);
+      const offset = startT + (performance.now() - startedAt) / 1000;
+      audioSrc.start(0, Math.min(offset, audioBuf.duration));
+    } catch (e) { /* no audio is better than no video */ }
+  }
+  function stopAudio() { if (audioSrc) { try { audioSrc.stop(); } catch (e) {} audioSrc = null; } }
+
+  function setPlaying(on) {
+    playing = on && !!spec;
+    $('play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    $('playIcon').innerHTML = playing ? '<path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z" fill="currentColor"/>' : '<path d="M7 4.5v15l13-7.5z" fill="currentColor"/>';
+    stopAudio();
+    if (playing) {
+      if (t >= spec.duration - 0.01) t = 0;
+      startedAt = performance.now(); startT = t;
+      startAudio();
+      requestAnimationFrame(tick);
+    }
+  }
+  function tick() {
+    if (!playing) return;
+    t = startT + (performance.now() - startedAt) / 1000;
+    if (t >= spec.duration) {
+      if (cfg.loop !== false) { t = 0; startedAt = performance.now(); startT = 0; stopAudio(); startAudio(); }
+      else { t = spec.duration; setPlaying(false); }
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+  function setSound(on) {
+    soundOn = on;
+    $('sound').setAttribute('aria-pressed', String(on));
+    $('sound').setAttribute('aria-label', on ? 'Sound on' : 'Sound off');
+    $('soundIcon').innerHTML = on
+      ? '<path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+      : '<path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+    if (!on) stopAudio(); else if (playing) { startedAt = performance.now(); startT = t; startAudio(); }
+  }
+
+  $('play').addEventListener('click', () => setPlaying(!playing));
+  $('sound').addEventListener('click', () => setSound(!soundOn));
+  scrub.addEventListener('input', () => {
+    if (!spec) return;
+    t = (Number(scrub.value) / 1000) * spec.duration;
+    if (playing) { startedAt = performance.now(); startT = t; stopAudio(); startAudio(); }
+    draw();
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); build(); return; }
+    if (e.key === ' ' && document.activeElement !== code && !/^(INPUT|SELECT|BUTTON|SUMMARY)$/.test(document.activeElement.tagName)) { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  // ---------- editor ----------
+  let debounce;
+  code.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(build, 350); });
+  code.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      const s = code.selectionStart, en = code.selectionEnd;
+      code.setRangeText('  ', s, en, 'end');
+      code.dispatchEvent(new Event('input'));
+    }
+  });
+  $('format').addEventListener('click', () => {
+    try { code.value = JSON.stringify(JSON.parse(code.value), null, 2); build(); }
+    catch (e) { toast('Fix the JSON first'); }
+  });
+  $('share').addEventListener('click', async () => {
+    try {
+      const url = `${location.origin}${location.pathname}#s=${await pack(code.value)}`;
+      history.replaceState(null, '', url);
+      await navigator.clipboard.writeText(url);
+      toast('Link copied');
+    } catch (e) { toast('Copy the address bar to share'); }
+  });
+
+  function loadExample(id) {
+    const ex = examples.find((x) => x.id === id) || examples[0];
+    code.value = JSON.stringify(ex.spec, null, 2);
+    t = 0;
+    history.replaceState(null, '', location.pathname + (id ? `#ex=${ex.id}` : ''));
+    build();
+  }
+  $('example').addEventListener('change', (e) => { setPlaying(false); loadExample(e.target.value); });
+
+  // ---------- download (in the browser) ----------
+  let exporting = null;
+  $('download').addEventListener('click', async () => {
+    if (exporting) { exporting.abort(); return; }
+    const bar = $('dlBar'), note = $('dlNote'), btn = $('download');
+    exporting = new AbortController();
+    bar.hidden = false; bar.firstElementChild.style.width = '0%';
+    note.className = 'note'; note.textContent = 'Encoding…';
+    btn.textContent = 'Cancel';
+    const t0 = performance.now();
+    try {
+      const blob = await Lampo.exportVideo(code.value, { scale: Number($('quality').value), signal: exporting.signal, onProgress: (p) => { bar.firstElementChild.style.width = `${Math.round(p * 100)}%`; } });
+      const ext = blob.type === 'video/mp4' ? 'mp4' : 'webm';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `lampo-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.${ext}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      note.textContent = `✓ ${ext.toUpperCase()} · ${(blob.size / 1048576).toFixed(1)} MB · encoded in ${((performance.now() - t0) / 1000).toFixed(1)} s${blob.hasAudio ? ' · with sound' : ''}${ext === 'webm' ? ' · this browser has no H.264 encoder, so it made WebM (Chrome, Edge and Safari make MP4)' : ''}`;
+    } catch (e) {
+      note.className = 'note err';
+      note.textContent = e.name === 'AbortError' ? 'Cancelled.' : (e.problems ? e.problems.join(' · ') : e.message);
+    }
+    btn.textContent = 'Download';
+    bar.hidden = true;
+    exporting = null;
+  });
+
+  // ---------- Lampo Cloud ----------
+  const store = { get: (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+  $('cloudUrl').value = store.get('lampo-cloud-url') || cfg.cloudUrl || '';
+  $('cloudKey').value = store.get('lampo-cloud-key');
+  $('cloudGo').addEventListener('click', async () => {
+    const base = $('cloudUrl').value.trim().replace(/\/+$/, ''), key = $('cloudKey').value.trim();
+    const note = $('cloudNote'), out = $('cloudResult'), btn = $('cloudGo');
+    note.className = 'note'; out.innerHTML = '';
+    if (!/^https?:\/\//.test(base) || !key) { note.className = 'note err'; note.textContent = 'Enter the cloud URL and your key.'; return; }
+    store.set('lampo-cloud-url', base); store.set('lampo-cloud-key', key);
+    let body;
+    try { body = JSON.parse(code.value); } catch (e) { note.className = 'note err'; note.textContent = 'Fix the JSON first.'; return; }
+    btn.disabled = true; note.textContent = 'Rendering on the cloud…';
+    try {
+      const r = await fetch(`${base}/api/render`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ spec: body, quality: 'standard' }) });
+      const data = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
+      note.textContent = `✓ ${data.duration} s · ${data.width}×${data.height} · rendered in ${data.renderSeconds} s${data.creditsLeft != null ? ` · ${data.creditsLeft} credits left` : ''}`;
+      const v = document.createElement('video'); v.src = data.url; v.controls = true; v.playsInline = true;
+      const a = document.createElement('a'); a.href = data.url; a.textContent = 'Download the MP4 (link valid 15 minutes)'; a.style.display = 'block'; a.style.marginTop = '8px';
+      out.append(v, a);
+    } catch (e) { note.className = 'note err'; note.textContent = e.message === 'Failed to fetch' ? 'Could not reach the cloud (wrong URL, offline, or CORS).' : e.message; }
+    btn.disabled = false;
+  });
+
+  // ---------- start ----------
+  setSound(true);
+  (async () => {
+    try { examples = await fetch('examples.json').then((r) => r.json()); }
+    catch (e) { status.textContent = 'Could not load the examples.'; return; }
+    const sel = $('example');
+    const groups = {};
+    for (const ex of examples) {
+      if (!groups[ex.group]) { groups[ex.group] = document.createElement('optgroup'); groups[ex.group].label = ex.group; sel.appendChild(groups[ex.group]); }
+      const o = document.createElement('option'); o.value = ex.id; o.textContent = ex.name; groups[ex.group].appendChild(o);
+    }
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (h.get('s')) {
+      try { code.value = await unpack(h.get('s')); sel.value = ''; build(); return; }
+      catch (e) { toast('That share link is broken; loading an example'); }
+    }
+    const id = h.get('ex') && examples.some((x) => x.id === h.get('ex')) ? h.get('ex') : (cfg.example || 'examples-showreel');
+    sel.value = id;
+    loadExample(id);
+  })();
+})();
+</script>
+</body>
+</html>

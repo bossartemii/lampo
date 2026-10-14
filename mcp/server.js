@@ -10,6 +10,8 @@ const os = require('os');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
+const dns = require('dns').promises;
+const net = require('net');
 const { render, preview, still } = require('../src/render');
 const { normalize, SpecError } = require('../src/spec');
 const { describe } = require('../src/effects');
@@ -128,6 +130,49 @@ function validateCloudSpec(input, baseDir) {
   return s;
 }
 
+// On a public server a spec may only use media from the internet (https) or data: URIs:
+// no files from the server's disk, and no addresses inside the server's network.
+function mediaRefs(s) {
+  const refs = [];
+  const add = (src, where) => { if (src) refs.push({ src: String(src), where }); };
+  const walk = (layers, where) => (layers || []).forEach((L, i) => {
+    if (['image', 'video', 'phone'].includes(L.type)) add(L.src, `${where}[${i}]`);
+    if (L.layers) walk(L.layers, `${where}[${i}].layers`);
+  });
+  s.scenes.forEach((S, i) => {
+    const bg = S.background;
+    if (bg && typeof bg === 'object' && !Array.isArray(bg)) add(bg.src, `scenes[${i}].background`);
+    walk(S.layers, `scenes[${i}].layers`);
+  });
+  walk(s.layers, 'layers');
+  if (s.audio) add(s.audio.src, 'audio');
+  (s.fonts || []).forEach((f, i) => add(f.path, `fonts[${i}]`));
+  return refs;
+}
+
+function privateAddress(ip) {
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
+  }
+  const v = ip.toLowerCase();
+  if (v.startsWith('::ffff:')) return privateAddress(v.slice(7));
+  return v === '::1' || v === '::' || v.startsWith('fc') || v.startsWith('fd') || v.startsWith('fe80');
+}
+
+async function assertSafeMedia(s) {
+  for (const { src, where } of mediaRefs(s)) {
+    if (src.startsWith('data:')) continue;
+    let u;
+    try { u = new URL(src); } catch { u = null; }
+    if (!u || u.protocol !== 'https:') throw new Error(`${where}: on Lampo Cloud media must be an https:// URL or a data: URI (got "${src.slice(0, 80)}")`);
+    const host = u.hostname.replace(/^\[|\]$/g, '');
+    const addrs = net.isIP(host) ? [host] : (await dns.lookup(host, { all: true }).catch(() => [])).map((a) => a.address);
+    if (!addrs.length) throw new Error(`${where}: cannot resolve ${host}`);
+    if (addrs.some(privateAddress)) throw new Error(`${where}: ${host} is a private address`);
+  }
+}
+
 async function callTool(name, args = {}, auth = { master: true }) {
   const baseDir = process.cwd();
   const heavy = httpMode && ['lampo_preview', 'lampo_still', 'lampo_render'].includes(name);
@@ -138,7 +183,8 @@ async function callTool(name, args = {}, auth = { master: true }) {
 
   try {
     if (httpMode && ['lampo_validate', 'lampo_preview', 'lampo_still', 'lampo_render'].includes(name)) {
-      validateCloudSpec(args.spec, baseDir);
+      const s = validateCloudSpec(args.spec, baseDir);
+      await assertSafeMedia(s);
     }
     switch (name) {
       case 'lampo_guide':
@@ -256,6 +302,33 @@ function startStdio() {
   process.stdin.on('end', () => process.exit(0));
 }
 
+// ---------- REST API (the playground's "Render on Lampo Cloud") ----------
+// POST /api/render   { "spec": {...}, "quality": "standard" }  →  { url, duration, width, height, renderSeconds, creditsLeft }
+// POST /api/validate { "spec": {...} }                         →  { ok, duration, scenes, size, frames }
+async function readJson(req, limit = 1024 * 1024) {
+  const chunks = [];
+  let n = 0;
+  for await (const c of req) { n += c.length; if (n > limit) { req.destroy(); throw Object.assign(new Error('Request body exceeds the 1 MiB limit.'), { status: 413 }); } chunks.push(c); }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); }
+  catch { throw Object.assign(new Error('Body must be JSON: { "spec": { ... } }'), { status: 400 }); }
+}
+
+async function api(req, res, tool, auth) {
+  const send = (status, obj) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
+  if (req.method !== 'POST') return send(405, { error: 'Use POST with a JSON body: { "spec": { ... } }' });
+  let body;
+  try { body = await readJson(req); } catch (e) { return send(e.status || 400, { error: e.message }); }
+  if (!body.spec) return send(400, { error: 'Missing "spec".' });
+  if (tool === 'lampo_render' && cloudBusy) return send(429, { error: 'Lampo Cloud is busy with another render. Try again in a few seconds.' });
+  const out = await callTool(tool, { spec: body.spec, quality: body.quality }, auth);
+  const msg = out.content?.[0]?.text || '';
+  if (out.isError) return send(/Crediti esauriti|credits/i.test(msg) ? 402 : /occupato|busy/i.test(msg) ? 429 : 400, { error: msg.replace(/\n\nCall lampo_guide for the reference\.$/, '') });
+  let data;
+  try { data = JSON.parse(msg); } catch { data = { message: msg }; }
+  delete data.file; // server path, useless to the client
+  return send(200, data);
+}
+
 // ---------- HTTP (Streamable HTTP, JSON responses) ----------
 function startHttp(port) {
   httpMode = true;
@@ -338,15 +411,20 @@ function startHttp(port) {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify(keys, null, 2));
     }
-    if (url.pathname !== '/mcp') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo MCP server. Endpoint: POST /mcp'); }
+    if (url.pathname === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, version: VERSION, busy: cloudBusy })); }
+    // ChatGPT and Claude.ai connectors can't send headers: the key can also be the last part of the URL, /mcp/<key>
+    const pathKey = /^\/mcp\/(lk_[a-f0-9]{48}|[A-Za-z0-9_-]{32,})$/.exec(url.pathname)?.[1] || '';
+    const isApi = url.pathname === '/api/render' || url.pathname === '/api/validate';
+    if (url.pathname !== '/mcp' && !pathKey && !isApi) { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo Cloud. MCP endpoint: POST /mcp (Authorization: Bearer <key>) or /mcp/<key>. REST: POST /api/render, /api/validate.'); }
     const authHeader = req.headers.authorization || '';
-    const suppliedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const suppliedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : pathKey;
     const isMaster = suppliedToken === token;
     const clientKeys = !isMaster && suppliedToken ? loadKeys() : {};
     if (!isMaster && !clientKeys[suppliedToken]) {
       res.writeHead(401); return res.end('unauthorized');
     }
     const auth = { master: isMaster, token: suppliedToken };
+    if (isApi) return api(req, res, url.pathname === '/api/render' ? 'lampo_render' : 'lampo_validate', auth);
     if (req.method === 'GET') { res.writeHead(405); return res.end(); } // no server-initiated stream
     if (req.method === 'DELETE') { res.writeHead(200); return res.end(); }
     const maxBodyBytes = 1024 * 1024;

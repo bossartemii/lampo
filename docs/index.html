@@ -50,6 +50,13 @@
   .install code { padding: 14px 16px; overflow-x: auto; white-space: nowrap; }
   .install button { all: unset; cursor: pointer; padding: 14px 16px; border-left: 1px solid #333; font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--bolt); }
 
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .try { display: inline-flex; align-items: center; padding: 13px 20px; border-radius: 10px; border: 1.5px solid var(--ink); background: var(--bolt); color: var(--ink); font-weight: 700; text-decoration: none; }
+  .try:hover { background: #fff; }
+  .cloud { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+  .cloud ol { margin: 0; padding-left: 30px; display: grid; gap: 12px; }
+  .cloud li::marker { font-family: var(--mono); font-weight: 600; }
+  .cloud code { font: 500 14px var(--mono); background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; overflow-wrap: anywhere; }
   .stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: start; margin-top: 64px; }
   .spec { background: #fff; border: 1.5px solid var(--ink); border-radius: 14px; overflow: hidden; }
   .spec .bar { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1.5px solid var(--ink); font: 600 13px var(--mono); }
@@ -140,7 +147,7 @@
   @media (max-width: 880px) {
     .stage { grid-template-columns: 1fr; }
     .phone { position: static; max-width: 300px; margin: 0 auto; order: -1; }
-    .agent, .support, .gallery, .grid-demo, .sound { grid-template-columns: 1fr; gap: 28px; }
+    .agent, .support, .gallery, .grid-demo, .sound, .cloud { grid-template-columns: 1fr; gap: 28px; }
     .gallery .phone { max-width: 300px; margin: 0 auto; }
     .flow { grid-template-columns: 1fr 1fr; }
     .flow > div:nth-child(3) { border-left: 0; }
@@ -165,6 +172,7 @@
   <header class="top">
     <a class="brand" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 1 4 14h6.5L9 23l11-14h-7z" fill="#ffe14d" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/></svg>Lampo</a>
     <nav aria-label="Main">
+      <a href="playground/">Playground</a>
       <a href="#gallery">Gallery</a>
       <a href="#skill">Skill</a>
       <a href="#sound">Sound</a>
@@ -178,9 +186,12 @@
     <div class="hero">
       <h1>Your agent writes JSON. Lampo makes the video.</h1>
       <p class="lede">An open-source motion graphics engine for Claude, Gemini and ChatGPT. Short specs with named effects go in, finished MP4 ads, reels and launch videos come out in seconds — no browser involved.</p>
-      <div class="install">
-        <code id="cmd">/plugin marketplace add bossartemii/lampo</code>
-        <button type="button" id="copy">Copy</button>
+      <div class="cta-row">
+        <div class="install">
+          <code id="cmd">/plugin marketplace add bossartemii/lampo</code>
+          <button type="button" id="copy">Copy</button>
+        </div>
+        <a class="try" href="playground/">Try it in the browser →</a>
       </div>
 
       <div class="stage">
@@ -345,7 +356,24 @@ LAMPO_PUBLIC_URL=https://video.example.com node mcp/server.js --http 3333
 npx lampo init my-ad
 npx lampo preview my-ad.json
 npx lampo render my-ad.json</div>
-      <p class="panel-note">Hosted rendering for ChatGPT and Claude.ai is on the way: <a href="https://github.com/bossartemii/lampo/issues/new?title=Lampo%20Cloud%20early%20access&labels=cloud">ask for early access</a>.</p>
+      <p class="panel-note">No install at all: use Lampo Cloud from ChatGPT and Claude.ai, below.</p>
+    </section>
+
+    <section id="cloud">
+      <h2>Lampo Cloud: no install, works in ChatGPT and Claude.ai</h2>
+      <p class="sub">One HTTPS server renders for everyone. Web assistants connect with a URL, apps call a REST endpoint, and the playground renders on it with one click.</p>
+      <div class="cloud">
+        <ol>
+          <li><strong>Deploy it</strong> on Fly.io, Render or any Docker host: the config files are in the repo.</li>
+          <li><strong>Create a key</strong> with credits: <code>node cli/cloud.js add you@example.com 50</code></li>
+          <li><strong>Connect</strong> Claude.ai or ChatGPT with the connector URL <code>https://your-host/mcp/lk_…</code>, or Claude Code, Cursor and Codex with a Bearer header.</li>
+          <li><strong>Or call it</strong>: <code>POST /api/render { "spec": … }</code> returns a signed MP4 link.</li>
+        </ol>
+        <div>
+          <p class="sub" style="margin-bottom:16px">Keys and credits per client, limits per render, signed download links that expire, and media restricted to public https URLs. The same engine as the CLI, so a spec renders the same everywhere.</p>
+          <p><a href="https://github.com/bossartemii/lampo/blob/main/CLOUD.md">Deploy and connect guide →</a> &nbsp; <a href="https://github.com/bossartemii/lampo/issues/new?title=Lampo%20Cloud%20access&labels=cloud">Ask for a hosted key →</a></p>
+        </div>
+      </div>
     </section>
 
     <section>

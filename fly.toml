@@ -1,0 +1,32 @@
+# Lampo Cloud on Fly.io — see CLOUD.md
+#   fly launch --no-deploy --copy-config
+#   fly volumes create lampo_data --size 1
+#   fly secrets set LAMPO_TOKEN=$(openssl rand -hex 24) LAMPO_FILE_SECRET=$(openssl rand -hex 24) LAMPO_PUBLIC_URL=https://<app>.fly.dev
+#   fly deploy
+app = "lampo-cloud"
+primary_region = "fra"
+
+[env]
+  PORT = "3333"
+  LAMPO_KEYS_FILE = "/data/keys.json"
+
+[http_service]
+  internal_port = 3333
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+
+[[mounts]]
+  source = "lampo_data"
+  destination = "/data"
+
+[[vm]]
+  size = "performance-2x"
+  memory = "4gb"

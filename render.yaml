@@ -1,0 +1,21 @@
+# Lampo Cloud on Render (Blueprint) — see CLOUD.md. After the first deploy set LAMPO_PUBLIC_URL
+# to the service URL (https://<name>.onrender.com) and redeploy.
+services:
+  - type: web
+    name: lampo-cloud
+    runtime: docker
+    plan: standard
+    healthCheckPath: /health
+    envVars:
+      - key: LAMPO_TOKEN
+        generateValue: true
+      - key: LAMPO_FILE_SECRET
+        generateValue: true
+      - key: LAMPO_PUBLIC_URL
+        sync: false
+      - key: LAMPO_KEYS_FILE
+        value: /data/keys.json
+    disk:
+      name: lampo-data
+      mountPath: /data
+      sizeGB: 1

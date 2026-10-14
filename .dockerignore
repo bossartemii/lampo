@@ -5,3 +5,9 @@ lampo-out
 *.png
 *.mp3
 keys.json
+docs
+media
+web
+bench
+test
+*.gif

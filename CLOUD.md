@@ -25,20 +25,22 @@ What the server enforces:
 ## 1. Deploy
 
 ### Hugging Face Spaces (free, no credit card)
-Free CPU Spaces have 2 vCPU and 16 GB of RAM, plenty for Lampo. Everything happens in the browser:
+Free CPU Spaces have 2 vCPU and 16 GB of RAM, plenty for Lampo. The free way is a **Gradio** Space (Docker Spaces need a paid plan):
+its `app.py` can start any server on the Space's port, so ours downloads Lampo and runs it. Everything happens in the browser:
 
-1. On huggingface.co: **New Space** → name it (e.g. `lampo`) → SDK **Docker** → template **Blank** → hardware **CPU basic (free)** → **Public** (a private Space can't be reached by ChatGPT or Claude.ai).
-2. **Files → Add file → Upload files**: upload [`cloud/huggingface/Dockerfile`](cloud/huggingface/Dockerfile) and [`cloud/huggingface/README.md`](cloud/huggingface/README.md) (it replaces the Space's README; the header at the top configures the Space).
+1. On huggingface.co: **New Space** → name it (e.g. `lampo`) → SDK **Gradio** → template **Blank** → hardware **Free** → **Public** (a private Space can't be reached by ChatGPT or Claude.ai).
+2. **Files → Add file → Upload files**: upload the three files in [`cloud/huggingface-free/`](cloud/huggingface-free/): `app.py`, `packages.txt` and `README.md` (it replaces the Space's README; the header at the top configures the Space).
 3. **Settings → Variables and secrets → New secret**:
    - `LAMPO_TOKEN`: your master key, any random string of at least 32 characters
    - `LAMPO_KEYS` (optional): client keys as JSON, `{"lk_<at least 32 characters>": {"label": "Mario", "credits": 50}}`
-4. Wait for the build (a few minutes), then open `https://<user>-<space>.hf.space/health`.
+4. Wait for the build and the first start (a few minutes: it installs Node and ffmpeg, then downloads Lampo), then open `https://<user>-<space>.hf.space/health`.
 
 On Spaces the public URL is detected by itself (`SPACE_HOST`) and the link-signing secret is generated at every start,
 so `LAMPO_PUBLIC_URL` and `LAMPO_FILE_SECRET` are not needed. The free tier has no persistent disk: keys come back
 from `LAMPO_KEYS` at every restart, with their credits reset. A free Space sleeps after 48 hours without visits and
-wakes up on the next request (about a minute). The Dockerfile downloads Lampo from GitHub `main`: to update,
-**Settings → Factory rebuild**.
+wakes up on the next request (about a minute). Lampo is downloaded from GitHub `main`: to update, **Settings → Factory rebuild**.
+
+With a paid plan you can use a **Docker** Space instead: upload [`cloud/huggingface/Dockerfile`](cloud/huggingface/Dockerfile) and [`cloud/huggingface/README.md`](cloud/huggingface/README.md).
 
 ### Other hosts
 

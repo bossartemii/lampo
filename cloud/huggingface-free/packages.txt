@@ -1,0 +1,7 @@
+nodejs
+npm
+ffmpeg
+git
+fonts-inter
+fonts-dejavu-core
+fonts-liberation2

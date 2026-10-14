@@ -154,7 +154,7 @@ args = ["/path/to/lampo/mcp/launch.js"]
 ```
 
 ### ChatGPT and Claude.ai — Lampo Cloud
-No install for the user: one HTTPS server renders for everyone. Deploy it for free on **Hugging Face Spaces** (two files to upload, in `cloud/huggingface/`), or on Fly.io, Render or any Docker host (`fly.toml`, `render.yaml`, `Dockerfile`), create keys with credits, and connect:
+No install for the user: one HTTPS server renders for everyone. Deploy it for free on **Hugging Face Spaces** (three files to upload, in `cloud/huggingface-free/`), or on Fly.io, Render or any Docker host (`fly.toml`, `render.yaml`, `Dockerfile`), create keys with credits, and connect:
 
 - **Claude.ai / ChatGPT**: add a connector with the URL `https://your-host/mcp/lk_…`
 - **Claude Code, Cursor, Codex**: `https://your-host/mcp` with `Authorization: Bearer lk_…`

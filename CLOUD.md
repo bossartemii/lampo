@@ -29,6 +29,7 @@ Free CPU Spaces have 2 vCPU and 16 GB of RAM, plenty for Lampo. The free way is 
 its `app.py` can start any server on the Space's port, so ours downloads Lampo and runs it. Everything happens in the browser:
 
 1. On huggingface.co: **New Space** → name it (e.g. `lampo`) → SDK **Gradio** → template **Blank** → hardware **Free** → **Public** (a private Space can't be reached by ChatGPT or Claude.ai).
+   For hardware pick **CPU basic**. If the Space ends up on **ZeroGPU** it works too: `app.py` declares the GPU function ZeroGPU asks for, and Lampo still renders on the CPU.
 2. **Files → Add file → Upload files**: upload the three files in [`cloud/huggingface-free/`](cloud/huggingface-free/): `app.py`, `packages.txt` and `README.md` (it replaces the Space's README; the header at the top configures the Space).
 3. **Settings → Variables and secrets → New secret**:
    - `LAMPO_TOKEN`: your master key, any random string of at least 32 characters

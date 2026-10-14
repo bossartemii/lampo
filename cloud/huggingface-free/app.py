@@ -19,6 +19,18 @@ env = dict(os.environ)
 env["PORT"] = "7860"  # the port the Space serves
 env.setdefault("LAMPO_OUT", os.path.join(HOME, "lampo-out"))
 env.setdefault("LAMPO_KEYS_FILE", os.path.join(HOME, "lampo-data", "keys.json"))
-os.chdir(APP)
 print("Starting Lampo Cloud on port 7860", flush=True)
-os.execvpe("node", ["node", "mcp/server.js", "--http", "7860"], env)
+server = subprocess.Popen(["node", "mcp/server.js", "--http", "7860"], cwd=APP, env=env)
+
+# Lampo renders on the CPU. A Space on ZeroGPU hardware refuses to run without at least one
+# @spaces.GPU function, so declare one that is never called (on CPU hardware `spaces` is absent).
+try:
+    import spaces
+
+    @spaces.GPU
+    def _unused_gpu_slot():
+        return None
+except ImportError:
+    pass
+
+raise SystemExit(server.wait())

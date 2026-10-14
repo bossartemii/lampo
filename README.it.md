@@ -20,7 +20,7 @@ spec.json  →  motore Skia (niente browser)  →  N worker in parallelo  →  f
 
 ## Lampo Cloud
 
-Niente installazione per chi lo usa: un server HTTPS fa il render per tutti, anche da **ChatGPT** e **Claude.ai** (connettore con l'URL `https://tuo-host/mcp/lk_…`), da Claude Code / Cursor / Codex (header `Authorization: Bearer lk_…`) e via API (`POST /api/render`). Chiavi con crediti, limiti, link di download firmati e solo media https pubblici. Deploy gratis su **Hugging Face Spaces** (tre file da caricare, in `cloud/huggingface-free/`) oppure su Fly.io, Render o Docker: guida in **[CLOUD.md](CLOUD.md)**.
+Niente installazione per chi lo usa: un server HTTPS fa il render per tutti, anche da **ChatGPT** e **Claude.ai** (connettore con l'URL `https://tuo-host/mcp/lk_…`), da Claude Code / Cursor / Codex (header `Authorization: Bearer lk_…`) e via API (`POST /api/render`). I render gratuiti hanno la filigrana Lampo; il video pulito si paga una volta con **Stripe** (oppure con una chiave a crediti). Chiavi con crediti, limiti, link di download firmati e solo media https pubblici. Deploy gratis su **Hugging Face Spaces** (tre file da caricare, in `cloud/huggingface-free/`) oppure su Fly.io, Render o Docker: guida in **[CLOUD.md](CLOUD.md)**.
 
 ## Galleria
 

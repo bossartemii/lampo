@@ -6,15 +6,20 @@ const { createRenderer } = require('../src/frame');
 const { describe } = require('../src/effects');
 const sfx = require('../src/sfx');
 const { fontQueue } = require('./shims/canvas');
+const { watermark } = require('../src/watermark');
 const { loadVideo } = require('./shims/video');
 const mp4 = require('mp4-muxer');
 const webm = require('webm-muxer');
 
 const SR = sfx.SR;
 
-/** Validate a spec (object or JSON text) for the browser. Throws SpecError with fix-it messages. */
-function prepare(input, overrides = {}) {
-  const obj = typeof input === 'string' ? parseLoose(input) : JSON.parse(JSON.stringify(input));
+/**
+ * Validate a spec (object or JSON text) for the browser. Throws SpecError with fix-it messages.
+ * opts.watermark: true adds the Lampo watermark (the playground's free preview and download).
+ */
+function prepare(input, overrides = {}, opts = {}) {
+  let obj = typeof input === 'string' ? parseLoose(input) : JSON.parse(JSON.stringify(input));
+  if (opts.watermark) obj = watermark(obj);
   return normalize({ ...obj, ...overrides }, { baseDir: '' });
 }
 
@@ -125,11 +130,11 @@ async function pickFormat(W, H, fps, only) {
 /**
  * Encode the spec to a video file in the browser (WebCodecs), frame-exact and faster than real time.
  * MP4 (H.264/AAC) where the browser supports it, else WebM (VP9/Opus).
- * opts: { scale, format: 'mp4' | 'webm', onProgress(0..1), signal }. Returns a Blob; blob.type says which.
+ * opts: { scale, format: 'mp4' | 'webm', watermark, onProgress(0..1), signal }. Returns a Blob; blob.type says which.
  */
 async function exportVideo(input, opts = {}) {
   if (typeof VideoEncoder === 'undefined') throw new Error('This browser cannot encode video (no WebCodecs). Use Chrome, Edge or Safari 17+, or the Lampo CLI.');
-  const spec = prepare(input, opts.scale ? { scale: opts.scale } : {});
+  const spec = prepare(input, opts.scale ? { scale: opts.scale } : {}, { watermark: opts.watermark });
   // H.264 needs even dimensions
   spec.outWidth -= spec.outWidth % 2;
   spec.outHeight -= spec.outHeight % 2;

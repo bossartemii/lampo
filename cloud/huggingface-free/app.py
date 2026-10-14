@@ -1,8 +1,8 @@
 # Lampo Cloud on a free Hugging Face Space (Gradio SDK, which stays free).
 #
 # The Space serves a Gradio app on port 7860. Lampo's MCP / REST server (Node) runs next to it
-# on port 7861, and this app forwards Lampo's routes to it: /mcp, /mcp/<key>, /api/render,
-# /api/validate, /files/<name>, /health. packages.txt installs Node, ffmpeg and fonts; Lampo is
+# on port 7861, and this app forwards Lampo's routes to it: /mcp, /mcp/<key>, /api/…, /buy/…,
+# /paid, /files/<name>, /health. packages.txt installs Node, ffmpeg and fonts; Lampo is
 # downloaded from GitHub on the first start (Settings → Factory rebuild updates it).
 
 # ZeroGPU hardware checks, when the Gradio app launches, that at least one @spaces.GPU function
@@ -67,7 +67,7 @@ async def forward(request: Request) -> Response:
 
 
 METHODS = ["GET", "POST", "DELETE", "OPTIONS"]
-ROUTES = [Route(p, forward, methods=METHODS) for p in ["/mcp", "/mcp/{key}", "/api/render", "/api/validate", "/files/{name}", "/health", "/admin/keys"]]
+ROUTES = [Route(p, forward, methods=METHODS) for p in ["/mcp", "/mcp/{key}", "/api/render", "/api/validate", "/api/checkout", "/api/clean", "/buy/{id}", "/paid", "/files/{name}", "/health", "/admin/keys"]]
 
 with gr.Blocks(title="Lampo Cloud") as demo:
     gr.Markdown(f"""

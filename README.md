@@ -160,7 +160,7 @@ No install for the user: one HTTPS server renders for everyone. Deploy it for fr
 - **Claude Code, Cursor, Codex**: `https://your-host/mcp` with `Authorization: Bearer lk_…`
 - **Apps and the playground**: `POST /api/render { "spec": … }` → a signed MP4 link
 
-Keys, credits, limits, signed download links and media restricted to public https URLs are built in. Full guide: **[CLOUD.md](CLOUD.md)**.
+Free renders carry the Lampo watermark; the clean video is a one-time **Stripe** payment (or a key with credits). Keys, credits, limits, signed download links and media restricted to public https URLs are built in. Full guide: **[CLOUD.md](CLOUD.md)**.
 
 ## MCP tools
 

@@ -81,6 +81,30 @@ To try it without a domain: `cloudflared tunnel --url http://localhost:3333`.
 
 Check it: `curl https://video.example.com/health`
 
+## Payments: watermark, then Stripe for the clean video
+
+Without credits, every video from Lampo Cloud carries the Lampo watermark (a diagonal mark and a corner badge):
+anonymous MCP calls, `/api/render` without a key, keys with no credits left, and the playground's free preview and download.
+Paying unlocks the clean version of that exact video:
+
+- **Agents (ChatGPT, Claude)**: the `lampo_render` result has `clean.buyUrl` (`https://<host>/buy/<id>`). The user opens it, pays on Stripe Checkout, and lands on `/paid` with the clean video and a download button.
+- **Playground**: "Pay €2.99 and download" → Stripe Checkout → back to the playground, which receives the clean video.
+- **Keys with credits** keep rendering clean videos directly.
+
+The payment is always checked with Stripe (`payment_status: paid`) before rendering; nothing in the URL is trusted.
+Setup, as secrets on the server (on Hugging Face: Settings → Variables and secrets):
+
+| Secret | |
+|---|---|
+| `STRIPE_SECRET_KEY` | your Stripe secret key. Start with a test key (`sk_test_…`) and the card 4242 4242 4242 4242, then switch to `sk_live_…` |
+| `LAMPO_PRICE_CENTS` | price of one clean video in cents, default `299` |
+| `LAMPO_CURRENCY` | default `eur` |
+| `LAMPO_RETURN_ORIGINS` | sites the buyer may return to after paying, default `https://bossartemii.github.io` (the playground) |
+| `LAMPO_ANON_PER_HOUR` | free watermarked renders per hour per address, default `20` |
+
+`/health` says whether payments are on (`"payments": true, "price": "€2.99"`); the playground shows the pay button only then.
+No webhook is needed. The local CLI and MCP (open source) never add a watermark.
+
 ## 2. Create keys
 
 On a host with a disk (Fly.io, Render, a VPS) keys are created and topped up live; on Hugging Face put them in the `LAMPO_KEYS` secret.

@@ -72,6 +72,7 @@
   .time { font: 400 13px var(--mono); color: var(--muted); white-space: nowrap; }
 
   .card { background: #fff; border: 1.5px solid var(--ink); border-radius: 14px; padding: 14px 16px; }
+  .card.buy { border-width: 2px; box-shadow: 4px 4px 0 var(--ink); }
   .card h2 { font-size: 16px; margin: 0 0 4px; letter-spacing: -0.01em; }
   .card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -135,15 +136,23 @@
       <span class="time" id="time">0.00 / 0.00 s</span>
     </div>
 
+    <div class="card buy" id="buyCard" hidden>
+      <h2>Download without watermark</h2>
+      <p>The clean video, rendered in full quality on Lampo Cloud. Pay once with Stripe, the download starts right after.</p>
+      <div class="row"><button class="btn bolt" id="buy" type="button">Pay <span id="price"></span> and download</button></div>
+      <div class="note" id="buyNote" role="status" aria-live="polite"></div>
+      <div class="result" id="buyResult"></div>
+    </div>
+
     <div class="card">
-      <h2>Download the video</h2>
+      <h2>Free download, with watermark</h2>
       <p>Encoded in your browser, frame by frame, with sound. Nothing is uploaded.</p>
       <div class="row">
         <select id="quality" aria-label="Export quality">
           <option value="0.5">Draft — half size, fastest</option>
           <option value="1" selected>Full size</option>
         </select>
-        <button class="btn bolt" id="download" type="button">Download</button>
+        <button class="btn" id="download" type="button">Download</button>
       </div>
       <div class="progress" hidden id="dlBar"><div></div></div>
       <div class="note" id="dlNote" role="status" aria-live="polite"></div>
@@ -151,8 +160,8 @@
 
     <div class="card">
       <details id="cloudBox">
-        <summary>Render on Lampo Cloud</summary>
-        <p style="margin-top:8px">The same spec rendered by the Lampo server: H.264 MP4 on fast machines, also from ChatGPT and Claude.ai. Needs a Lampo Cloud URL and a key.</p>
+        <summary>Have a Lampo Cloud key?</summary>
+        <p style="margin-top:8px">With a key that has credits the server renders the clean MP4 directly (one credit per video).</p>
         <label class="field">Cloud URL <input id="cloudUrl" type="url" placeholder="https://your-lampo-cloud.example.com" autocomplete="off"></label>
         <label class="field">Key <input id="cloudKey" type="password" placeholder="lk_…" autocomplete="off"></label>
         <div class="row" style="margin-top:12px"><button class="btn primary" id="cloudGo" type="button">Render MP4 on the cloud</button></div>
@@ -213,7 +222,8 @@
   async function build() {
     const my = ++building;
     let s;
-    try { s = Lampo.prepare(code.value, { scale: PREVIEW_SCALE, quality: 'standard' }); }
+    // the preview shows what the free download gives: the video with the Lampo watermark
+    try { s = Lampo.prepare(code.value, { scale: PREVIEW_SCALE, quality: 'standard' }, { watermark: true }); }
     catch (e) { showErrors(e); return; }
     // only show the overlay when loading is slow, so typing doesn't flicker
     const slow = setTimeout(() => { if (my === building) { msg.hidden = false; msg.textContent = 'Loading media…'; } }, 250);
@@ -357,7 +367,7 @@
     btn.textContent = 'Cancel';
     const t0 = performance.now();
     try {
-      const blob = await Lampo.exportVideo(code.value, { scale: Number($('quality').value), signal: exporting.signal, onProgress: (p) => { bar.firstElementChild.style.width = `${Math.round(p * 100)}%`; } });
+      const blob = await Lampo.exportVideo(code.value, { scale: Number($('quality').value), watermark: true, signal: exporting.signal, onProgress: (p) => { bar.firstElementChild.style.width = `${Math.round(p * 100)}%`; } });
       const ext = blob.type === 'video/mp4' ? 'mp4' : 'webm';
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -400,8 +410,65 @@
     btn.disabled = false;
   });
 
+  // ---------- pay once, download the clean video (Stripe Checkout on Lampo Cloud) ----------
+  const cloudBase = () => ($('cloudUrl').value.trim() || cfg.cloudUrl || '').replace(/\/+$/, '');
+  // text/plain bodies keep these simple requests: no CORS preflight
+  const cloudPost = (p, obj) => fetch(`${cloudBase()}${p}`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(obj) })
+    .then(async (r) => { const d = await r.json().catch(() => ({ error: `HTTP ${r.status}` })); if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`); return d; });
+
+  async function setupPayments() {
+    if (!cloudBase()) return;
+    try {
+      const h = await fetch(`${cloudBase()}/health`).then((r) => r.json());
+      if (!h.payments) return;
+      $('price').textContent = h.price;
+      $('buyCard').hidden = false;
+    } catch (e) { /* cloud asleep or unreachable: only the free download */ }
+  }
+
+  $('buy').addEventListener('click', async () => {
+    const note = $('buyNote'), btn = $('buy');
+    note.className = 'note';
+    let spec;
+    try { spec = JSON.parse(code.value); } catch (e) { note.className = 'note err'; note.textContent = 'Fix the JSON first.'; return; }
+    btn.disabled = true; note.textContent = 'Opening the secure checkout…';
+    try {
+      // the spec comes back after the payment page
+      try { sessionStorage.setItem('lampo-paid-spec', code.value); } catch (e) {}
+      const d = await cloudPost('/api/checkout', { spec, return: location.origin + location.pathname });
+      location.href = d.url;
+    } catch (e) {
+      note.className = 'note err';
+      note.textContent = e.message === 'Failed to fetch' ? 'Could not reach Lampo Cloud. If it was asleep it is waking up: try again in a minute.' : e.message;
+      btn.disabled = false;
+    }
+  });
+
+  async function deliverPaid(sessionId) {
+    const note = $('buyNote'), out = $('buyResult');
+    $('buyCard').hidden = false;
+    $('buy').disabled = true;
+    note.className = 'note';
+    note.textContent = 'Payment received. Rendering your clean video…';
+    let specText = '';
+    try { specText = sessionStorage.getItem('lampo-paid-spec') || ''; } catch (e) {}
+    if (specText) { code.value = specText; build(); }
+    try {
+      const d = await cloudPost('/api/clean', { session_id: sessionId, spec: specText ? JSON.parse(specText) : undefined });
+      note.textContent = '✓ Paid. Your video without watermark is ready (the link works for 15 minutes).';
+      const v = document.createElement('video'); v.src = d.url; v.controls = true; v.playsInline = true;
+      const a = document.createElement('a'); a.href = d.url; a.className = 'btn bolt'; a.textContent = 'Download MP4'; a.style.display = 'inline-block'; a.style.marginTop = '10px'; a.style.textDecoration = 'none'; a.style.color = 'var(--ink)'; a.download = '';
+      out.innerHTML = ''; out.append(v, a);
+      $('buyCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {
+      note.className = 'note err';
+      note.textContent = `${e.message} Reload this page to try again: the payment is kept.`;
+    }
+  }
+
   // ---------- start ----------
   setSound(true);
+  const paidSession = new URLSearchParams(location.search).get('paid');
   (async () => {
     try { examples = await fetch('examples.json').then((r) => r.json()); }
     catch (e) { status.textContent = 'Could not load the examples.'; return; }
@@ -411,6 +478,13 @@
       if (!groups[ex.group]) { groups[ex.group] = document.createElement('optgroup'); groups[ex.group].label = ex.group; sel.appendChild(groups[ex.group]); }
       const o = document.createElement('option'); o.value = ex.id; o.textContent = ex.name; groups[ex.group].appendChild(o);
     }
+    if (paidSession) {
+      // back from Stripe: keep ?paid= in the URL so a reload retries the delivery
+      await setupPayments();
+      deliverPaid(paidSession);
+      return;
+    }
+    setupPayments();
     const h = new URLSearchParams(location.hash.slice(1));
     if (h.get('s')) {
       try { code.value = await unpack(h.get('s')); sel.value = ''; build(); return; }

@@ -131,9 +131,9 @@ Host it on any VPS (or try it with `cloudflared tunnel --url http://localhost:33
 - **Layers** text (with `**highlights**`, gradients, stroke, pill buttons, auto-fit), counter (locale-aware), rect, circle, line, image, **video clips** (trim, slow motion, loop, rounded corners, optional clip audio)
 - **Motion design**: shapes that **morph** (dot → line → pill → app icon → full screen) with keyframed size, radius and color, circle takeovers, an **iris transition**, **RGB glitch** text, **25 line icons** (also inline with text), a loading **spinner**, `rush` speed-blur entrances
 - **App & website demos**: an iPhone mockup whose screen you lay out in real iPhone points, groups for cards/buttons/screens, a **touch cursor** that glides and taps with ripples, **keyframes** for camera moves and button presses, **hand-drawn paths** that draw themselves (underline, circle, arrow, check, any SVG), and a **stamp** effect
-- **25 enter/exit effects** incl. `glitch`, `rush`, `stamp`, `draw`, `slideUp`, `rise` (keynote-style line masks), `wordsUp`, `letters`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`
-- **7 loops** float, pulse, rotate, kenburns, drift, shake, breathe · **9 easings** + cubic-bezier
-- **9 transitions** fade, slide, push, slideUp, zoom, wipe, blur, circle (iris), none
+- **44 enter/exit effects** incl. `glitch`, `rush`, `stamp`, `draw`, `iris`, `flip`, `elastic`, `swing`, `skewIn`, `flicker`, `focus`, `unfold`, `rise` (keynote-style line masks), `wordsRise`, `wordsUp`, `letters`, `lettersBlur`, `cascade`, `typewriter`, `blurIn`, `zoomOut`, `popIn`, `grow`
+- **14 loops** float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing, bounce, orbit, heartbeat, flicker, glitch · **9 easings** + cubic-bezier
+- **19 transitions** fade, slide, slideUp, slideDown, push, pushUp, whip, zoom, zoomIn, wipe, wipeLeft, wipeUp, wipeDown, barn, blur, circle (iris), fadeBlack, flash, none
 - **Backgrounds** solid, animated gradient, `glow` (soft drifting light), image with Ken Burns, **b-roll video**
 - **Sound effects** synthesized by Lampo and synced to the animations automatically (`"sfx": true`): whoosh, pop, tick, impact, boom, riser, ding and more — no audio files, no licensing
 - **Audio** with fades · **custom fonts** · **global layers** (logo, watermark) · vignette

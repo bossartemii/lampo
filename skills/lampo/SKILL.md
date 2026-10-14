@@ -45,7 +45,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
 ```json
 { "duration": 3, "transition": "fade", "background": ..., "layers": [ ... ] }
 ```
-- `transition` (into this scene): none | fade | slide | push | slideUp | zoom | wipe | blur | circle (iris from `origin: {x, y}`, default center). Or `{ "type": "zoom", "duration": 0.6 }`. Overlaps the previous scene.
+- `transition` (into this scene): none | fade | slide | slideUp | slideDown | push | pushUp | whip (fast push with motion blur) | zoom | zoomIn (camera dives into the old scene) | wipe | wipeLeft | wipeUp | wipeDown | barn (opens from the center) | blur | circle (iris from `origin: {x, y}`, default center) | fadeBlack (dip to black) | flash (white flash, punchy cut). fadeBlack/flash accept `color`. Or `{ "type": "zoom", "duration": 0.6 }`. Overlaps the previous scene.
 - `background`:
   - `"#101010"` solid
   - `["#1a0b02", "#3d1402"]` or `{ "type": "gradient", "colors": [...], "angle": 160, "animate": 10 }` (animate = degrees/sec)
@@ -62,7 +62,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
 - `out`: exit effect, same names, played in reverse at the end of the layer
 - `loop`: `"float"` or `{ "effect": "pulse", "amount": 0.04, "period": 1.2 }` or an array
 - `opacity`, `scale`, `rotate`, `shadow: true`, `glow: "rgba(255,160,0,.6)"`
-- `keyframes` also morph shapes: `w`, `h`, `r` (circle), `radius`, `color`, `size` (text), `blur`, `rgb` (chromatic split). One rect can go dot → line → pill → app icon → full screen: `[{t:0,w:44,h:44,radius:22},{t:0.25,w:330,h:7,radius:4},{t:0.6,w:360,h:104,radius:10},{t:1.2,w:158,h:158,radius:40},{t:1.6,w:560,h:1000,color:"#9c9c9c"}]`. A circle whose `r` grows to ~1300 fills the screen (color takeover).
+- `keyframes` also morph shapes: `w`, `h`, `r` (circle), `radius`, `color`, `size` (text), `blur`, `rgb` (chromatic split), `skew` (degrees). One rect can go dot → line → pill → app icon → full screen: `[{t:0,w:44,h:44,radius:22},{t:0.25,w:330,h:7,radius:4},{t:0.6,w:360,h:104,radius:10},{t:1.2,w:158,h:158,radius:40},{t:1.6,w:560,h:1000,color:"#9c9c9c"}]`. A circle whose `r` grows to ~1300 fills the screen (color takeover).
 - `keyframes`: move/zoom over time, e.g. `[{ "t": 2, "y": "60%", "scale": 1 }, { "t": 2.8, "y": "52%", "scale": 1.15 }]` (t = seconds from the layer start; props x, y, scale, rotate, opacity; optional `easing`). A quick press: `[{t:1.9,scale:1},{t:2,scale:0.93},{t:2.15,scale:1}]`.
 
 ### text
@@ -106,9 +106,9 @@ A loading spinner: `size`, `color`, `track` (ring color or false), `speed`. Put 
 - image: `src` (local path or URL), `w`, `h`, `fit` (cover|contain), `radius`
 
 ## Effects
-Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, slideUp (from below the frame), scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp, stamp (slams down tilted, like a rubber stamp), draw (paths draw their stroke), glitch (red/cyan chromatic split that jitters and settles), rush (flies in from the right with speed blur — vans, cars, products)
-Text only (animate per unit): rise (lines slide up from a mask — keynote style), wordsUp, wordsPop, letters, typewriter
-Loops: float, pulse, rotate, kenburns, drift, shake, breathe
+Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, slideUp (from below the frame), scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp, stamp (slams down tilted, like a rubber stamp), draw (paths draw their stroke), glitch (red/cyan chromatic split that jitters and settles), rush (flies in from the right with speed blur — vans, cars, products), slideDown (from above the frame), growLeft, growDown, wipeLeft, wipeDown, unfold (opens from the center line), iris (circular reveal — photos, logos), flip / flipUp (card flip), elastic (springy pop with wobble), swing (hangs from the top edge and swings in), skewIn (slides in leaning, then straightens — sporty), flicker (switches on like a neon sign), focus (comes into focus from a big blur)
+Text only (animate per unit): rise (lines slide up from a mask — keynote style), wordsRise (same, word by word), wordsUp, wordsPop, wordsSlide, wordsFlip, letters, lettersBlur (letters sharpen into place), cascade (letters fall in with a tilt), typewriter
+Loops: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing (pendulum from the top edge), bounce, orbit, heartbeat (double beat), flicker (neon), glitch (periodic RGB bursts on text). Options: `amount`, `period` (`speed` for rotate/flicker)
 Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, or a cubic-bezier array [x1,y1,x2,y2]
 
 ## Sound effects

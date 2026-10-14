@@ -144,7 +144,7 @@ function layoutOnce(ctx, L, theme, spec) {
 // ---------- animated layer state ----------
 
 function baseState(L) {
-  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null, draw: 1, rgb: 0 };
+  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null, draw: 1, rgb: 0, skew: 0 };
 }
 
 function layerWindow(L, sceneDur) {
@@ -185,8 +185,11 @@ function applyTransform(ctx, s, box, scaleOut) {
   let px = box.x + box.w / 2, py = box.y + box.h / 2;
   if (s.origin === 'left') px = box.x;
   if (s.origin === 'bottom') py = box.y + box.h;
+  if (s.origin === 'right') px = box.x + box.w;
+  if (s.origin === 'top') py = box.y;
   ctx.translate(px, py);
   if (s.rotate) ctx.rotate((s.rotate * Math.PI) / 180);
+  if (s.skew) ctx.transform(1, 0, Math.tan((Math.max(-80, Math.min(80, s.skew)) * Math.PI) / 180), 1, 0, 0);
   const sx = s.scale * s.scaleX, sy = s.scale * s.scaleY;
   if (sx !== 1 || sy !== 1) ctx.scale(Math.max(1e-4, sx), Math.max(1e-4, sy));
   ctx.translate(-px, -py);
@@ -196,7 +199,9 @@ function applyTransform(ctx, s, box, scaleOut) {
     const c = s.clip;
     const pad = 4;
     ctx.beginPath();
-    ctx.rect(box.x + box.w * c.x0 - pad, box.y + box.h * c.y0 - pad, box.w * (c.x1 - c.x0) + pad * 2, box.h * (c.y1 - c.y0) + pad * 2);
+    // circular reveal from the box center (iris)
+    if (c.circle != null) ctx.arc(box.x + box.w / 2, box.y + box.h / 2, Math.max(0.01, (Math.hypot(box.w, box.h) / 2 + pad) * c.circle), 0, Math.PI * 2);
+    else ctx.rect(box.x + box.w * c.x0 - pad, box.y + box.h * c.y0 - pad, box.w * (c.x1 - c.x0) + pad * 2, box.h * (c.y1 - c.y0) + pad * 2);
     ctx.clip();
   }
 }
@@ -295,7 +300,7 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
 
   const baseAlpha = ctx.globalAlpha;
   units.forEach((u, i) => {
-    const us = { opacity: 1, dx: 0, dy: 0, scale: 1, scaleX: 1, scaleY: 1, rotate: 0, blur: 0 };
+    const us = { opacity: 1, dx: 0, dy: 0, scale: 1, scaleX: 1, scaleY: 1, rotate: 0, blur: 0, skew: 0 };
     if (split.in) {
       const tm = timing.in;
       const p = getEasing(split.in.opts.easing || split.in.fx.easing || 'apple')((split.in.t - i * tm.stagger) / tm.unitDur);
@@ -314,10 +319,11 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
       ctx.rect(u.x - lay.size, u.y - lay.lh * 0.08, u.w + lay.size * 2, u.h * 1.12);
       ctx.clip();
     }
-    if (us.dx || us.dy || us.scale !== 1 || us.rotate) {
+    if (us.dx || us.dy || us.scale !== 1 || us.scaleX !== 1 || us.scaleY !== 1 || us.rotate || us.skew) {
       ctx.translate(u.x + u.w / 2 + us.dx, u.cy + us.dy);
       if (us.rotate) ctx.rotate((us.rotate * Math.PI) / 180);
-      if (us.scale !== 1) ctx.scale(us.scale, us.scale);
+      if (us.skew) ctx.transform(1, 0, Math.tan((us.skew * Math.PI) / 180), 1, 0, 0);
+      if (us.scale !== 1 || us.scaleX !== 1 || us.scaleY !== 1) ctx.scale(Math.max(1e-4, us.scale * us.scaleX), Math.max(1e-4, us.scale * us.scaleY));
       ctx.translate(-(u.x + u.w / 2), -u.cy);
     }
     ctx.globalAlpha = baseAlpha * clamp01(us.opacity);
@@ -516,6 +522,7 @@ function drawLayer(ctx, L, pt, win, env, frame) {
     if (kv.opacity != null) s.opacity *= kv.opacity;
     if (kv.blur != null) s.blur += kv.blur;
     if (kv.rgb != null) s.rgb += kv.rgb;
+    if (kv.skew != null) s.skew += kv.skew;
     // shape morphing: size, corner radius, color, text size
     if (kv.w != null || kv.h != null || kv.radius != null || kv.color != null || kv.size != null || kv.r != null) {
       L = { ...L };
@@ -749,6 +756,47 @@ async function createRenderer(spec) {
           put(a, 1);
           ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W * q, H); ctx.clip(); ctx.drawImage(b, 0, 0); ctx.restore();
           break;
+        case 'wipeLeft':
+          put(a, 1);
+          ctx.save(); ctx.beginPath(); ctx.rect(W * (1 - q), 0, W * q, H); ctx.clip(); ctx.drawImage(b, 0, 0); ctx.restore();
+          break;
+        case 'wipeUp':
+          put(a, 1);
+          ctx.save(); ctx.beginPath(); ctx.rect(0, H * (1 - q), W, H * q); ctx.clip(); ctx.drawImage(b, 0, 0); ctx.restore();
+          break;
+        case 'wipeDown':
+          put(a, 1);
+          ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H * q); ctx.clip(); ctx.drawImage(b, 0, 0); ctx.restore();
+          break;
+        case 'barn':
+          // doors opening from the center
+          put(a, 1);
+          ctx.save(); ctx.beginPath(); ctx.rect(W * (0.5 - q / 2), 0, W * q, H); ctx.clip(); ctx.drawImage(b, 0, 0); ctx.restore();
+          break;
+        case 'slideDown': put(a, 1, 0, q * H * 0.2); put(b, 1, 0, -(1 - q) * H); break;
+        case 'pushUp': put(a, 1, 0, -q * H); put(b, 1, 0, (1 - q) * H); break;
+        case 'whip': {
+          // fast push with a motion blur that peaks halfway
+          const bl = Math.sin(q * Math.PI) * 40;
+          put(a, 1, -q * W, 0, 1, bl); put(b, 1, (1 - q) * W, 0, 1, bl);
+          break;
+        }
+        case 'zoomIn':
+          // the camera dives into the old scene, the new one lands from big
+          put(a, 1 - q, 0, 0, 1 + q * 1.5, q * 12); put(b, q, 0, 0, 1.4 - 0.4 * q, (1 - q) * 12);
+          break;
+        case 'fadeBlack':
+        case 'flash': {
+          // dip to a color: the old scene fades out, the new one fades in
+          if (q < 0.5) put(a, 1); else put(b, 1);
+          ctx.save();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.globalAlpha = clamp01(1 - Math.abs(q - 0.5) * 2);
+          ctx.fillStyle = tr.color || (tr.type === 'flash' ? '#fff' : '#000');
+          ctx.fillRect(0, 0, W, H);
+          ctx.restore();
+          break;
+        }
         default: put(b, 1);
       }
       ctx.setTransform(scaleOut, 0, 0, scaleOut, 0, 0);

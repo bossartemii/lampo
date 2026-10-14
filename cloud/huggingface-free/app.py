@@ -2,6 +2,18 @@
 # A Space runs `python app.py` and serves whatever listens on port 7860: here that is the Lampo
 # MCP / REST server (Node). packages.txt installs Node, ffmpeg and fonts; this file downloads Lampo
 # from GitHub on the first start and runs it. Settings → Factory rebuild updates it.
+
+# Lampo renders on the CPU. A Space on ZeroGPU hardware refuses to run without at least one
+# @spaces.GPU function, so declare one first thing, never called (on CPU hardware `spaces` is absent).
+try:
+    import spaces
+
+    @spaces.GPU
+    def unused_gpu_slot():
+        return None
+except ImportError:
+    spaces = None
+
 import os
 import subprocess
 
@@ -21,16 +33,4 @@ env.setdefault("LAMPO_OUT", os.path.join(HOME, "lampo-out"))
 env.setdefault("LAMPO_KEYS_FILE", os.path.join(HOME, "lampo-data", "keys.json"))
 print("Starting Lampo Cloud on port 7860", flush=True)
 server = subprocess.Popen(["node", "mcp/server.js", "--http", "7860"], cwd=APP, env=env)
-
-# Lampo renders on the CPU. A Space on ZeroGPU hardware refuses to run without at least one
-# @spaces.GPU function, so declare one that is never called (on CPU hardware `spaces` is absent).
-try:
-    import spaces
-
-    @spaces.GPU
-    def _unused_gpu_slot():
-        return None
-except ImportError:
-    pass
-
 raise SystemExit(server.wait())

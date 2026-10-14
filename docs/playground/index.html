@@ -325,7 +325,18 @@
 
   // ---------- editor ----------
   let debounce;
-  code.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(build, 350); });
+  code.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(build, 350);
+    // keep the draft, so a reload doesn't lose it
+    try { localStorage.setItem('lampo-draft', code.value); } catch (e) {}
+    if (/^#(ex|s)=/.test(location.hash)) history.replaceState(null, '', location.pathname);
+    if (paidFor !== null && code.value !== paidFor) {
+      const note = $('buyNote');
+      note.className = 'note';
+      note.textContent = 'This is a new video: pay again for its clean version. The one you bought is still below.';
+    }
+  });
   code.addEventListener('keydown', (e) => {
     if (e.key === 'Tab' && !e.shiftKey && !e.altKey) {
       e.preventDefault();
@@ -350,6 +361,7 @@
   function loadExample(id) {
     const ex = examples.find((x) => x.id === id) || examples[0];
     code.value = JSON.stringify(ex.spec, null, 2);
+    try { localStorage.setItem('lampo-draft', code.value); } catch (e) {}
     t = 0;
     history.replaceState(null, '', location.pathname + (id ? `#ex=${ex.id}` : ''));
     build();
@@ -444,6 +456,7 @@
     }
   });
 
+  let paidFor = null; // the spec of the video bought in this visit
   async function deliverPaid(sessionId) {
     const note = $('buyNote'), out = $('buyResult');
     $('buyCard').hidden = false;
@@ -456,6 +469,11 @@
     try {
       const d = await cloudPost('/api/clean', { session_id: sessionId, spec: specText ? JSON.parse(specText) : undefined });
       note.textContent = '✓ Paid. Your video without watermark is ready (the link works for 15 minutes).';
+      // delivered: forget the purchase so a reload or a new video starts fresh, and allow the next purchase
+      history.replaceState(null, '', location.pathname);
+      try { sessionStorage.removeItem('lampo-paid-spec'); } catch (e) {}
+      paidFor = code.value;
+      $('buy').disabled = false;
       const v = document.createElement('video'); v.src = d.url; v.controls = true; v.playsInline = true;
       const a = document.createElement('a'); a.href = d.url; a.className = 'btn bolt'; a.textContent = 'Download MP4'; a.style.display = 'inline-block'; a.style.marginTop = '10px'; a.style.textDecoration = 'none'; a.style.color = 'var(--ink)'; a.download = '';
       out.innerHTML = ''; out.append(v, a);
@@ -463,6 +481,7 @@
     } catch (e) {
       note.className = 'note err';
       note.textContent = `${e.message} Reload this page to try again: the payment is kept.`;
+      $('buy').disabled = false;
     }
   }
 
@@ -489,6 +508,11 @@
     if (h.get('s')) {
       try { code.value = await unpack(h.get('s')); sel.value = ''; build(); return; }
       catch (e) { toast('That share link is broken; loading an example'); }
+    }
+    if (!h.get('ex')) {
+      let draft = '';
+      try { draft = localStorage.getItem('lampo-draft') || ''; } catch (e) {}
+      if (draft) { code.value = draft; sel.value = ''; build(); return; }
     }
     const id = h.get('ex') && examples.some((x) => x.id === h.get('ex')) ? h.get('ex') : (cfg.example || 'examples-showreel');
     sel.value = id;

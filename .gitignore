@@ -17,3 +17,4 @@ keys.json
 # paid marketplace package and its private sources (packs): never public
 agensi/*.zip
 private/
+agensi/*.tgz

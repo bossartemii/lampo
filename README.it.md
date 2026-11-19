@@ -24,6 +24,10 @@ Niente installazione per chi lo usa: un server HTTPS fa il render per tutti, anc
 
 ## Galleria
 
+### Livello cinematografico
+Camera virtuale con parallasse, motion blur vero, particelle e look da pellicola: le cinque ricette cinematografiche dello skill.
+<img src="media/cinematic.gif" width="100%" alt="Cinque ricette cinematografiche di Lampo">
+
 ### 16 blueprint di scena
 Modelli di scena con tempi precisi, una mossa firma e JSON pronto: l'agente ne copia uno per scena e cambia i testi.
 <img src="media/blueprints.gif" width="100%" alt="Otto blueprint di Lampo">

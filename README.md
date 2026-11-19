@@ -51,6 +51,12 @@ Lampo flips it around. The agent writes a short JSON spec with **named effects**
 
 ## Gallery
 
+### Cinematic layer
+A virtual camera with parallax depth, real motion blur, particles and a film look — the five cinematic recipes of the skill:
+<img src="media/cinematic.gif" width="100%" alt="Five cinematic Lampo recipes: cinematic title, product orbit, energy drop, luxury reveal, neon handheld">
+
+<sub>`"camera": ["pushIn", "handheld"]` · layer `"depth"` for parallax · `"motionBlur": true` · `"particles"` (sparks, embers, confetti, bokeh, dust, bursts…) · `"look": { "grain", "lightLeak", "letterbox" }` — recipes in <a href="skills/lampo/references/pro-motion.md">pro-motion.md</a></sub>
+
 ### 16 shot blueprints
 Time-coded scene templates with a signature move and ready JSON — the agent copies one per scene and swaps the copy.
 <img src="media/blueprints.gif" width="100%" alt="Eight Lampo blueprints: kinetic slam, morph lockup, ticker takeover, stat hit, grid assemble, app demo, camera pan, CTA press">
@@ -153,6 +159,9 @@ command = "node"
 args = ["/path/to/lampo/mcp/launch.js"]
 ```
 
+### Any agent, no install
+The skill renders from wherever the agent runs: the MCP tools, `npx -y github:bossartemii/lampo render spec.json` (Node 18+, ffmpeg bundled), or the Lampo Cloud HTTP API (`/api/validate`, `/api/preview` → PNG, `/api/render`). Packaged for skill marketplaces: [`agensi/`](agensi/).
+
 ### ChatGPT and Claude.ai — Lampo Cloud
 No install for the user: one HTTPS server renders for everyone. Deploy it for free on **Hugging Face Spaces** (three files to upload, in `cloud/huggingface-free/`), or on Fly.io, Render or any Docker host (`fly.toml`, `render.yaml`, `Dockerfile`), create keys with credits, and connect:
 
@@ -174,6 +183,7 @@ Free renders carry the Lampo watermark; the clean video is a one-time **Stripe**
 
 ## What's inside
 
+- **Cinematic layer**: scene camera (push-in, pull-out, pans, tilts, orbit, dutch, handheld, crash zoom, shake) with parallax `depth`, real motion blur, 10 particle presets, film look (grain, light leaks, letterbox), spring easing, shine
 - **Motion-design skill** (like a director in the agent): 8 video routes, 9 named visual styles, 16 time-coded blueprints with ready JSON (kinetic slam, morph lockup, ticker takeover, camera pan, app demo…), motion rules and a visual review loop — `skills/lampo/`, also via `lampo_guide` topics
 - **Formats** 9:16, 1:1, 4:5, 16:9 or custom · 1–120 fps · draft / standard / high
 - **Layers** text (with `**highlights**`, gradients, stroke, pill buttons, auto-fit), counter (locale-aware), rect, circle, line, image, **video clips** (trim, slow motion, loop, rounded corners, optional clip audio)

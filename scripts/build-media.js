@@ -100,6 +100,18 @@ const jobs = {
     poster(mp4, path.join(SITE_DIR, 'blueprints-poster.jpg'), 4);
     gif(mp4, path.join(GIF_DIR, 'blueprints.gif'), { fps: 12 });
   },
+  async cinematic() {
+    // the cinematic recipes of the skill (camera, depth, motion blur, particles, film look)
+    const s = snippets('pro-motion.md');
+    const names = Object.keys(s);
+    const tiles = [];
+    for (const [i, n] of names.entries()) tiles.push(await tile(asSpec(s[n]), `cine-${i}`, 0.2));
+    const mp4 = path.join(SITE_DIR, 'cinematic.mp4');
+    grid(tiles, names.length, mp4, 5);
+    poster(mp4, path.join(SITE_DIR, 'cinematic-poster.jpg'), 2.6);
+    gif(mp4, path.join(GIF_DIR, 'cinematic.gif'), { fps: 12 });
+    console.log('cinematic:', names.join(', '));
+  },
   async sfx() {
     // every sound, one per beat, with its name on screen (this one is meant to be heard)
     const long = ['cymbal', 'reverse', 'downlifter', 'magic', 'cash', 'drop', 'boom', 'riser', 'chime', 'ding'];

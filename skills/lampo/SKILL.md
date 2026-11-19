@@ -1,16 +1,17 @@
 ---
 name: lampo
 description: >
-  Entry point for any request to make, animate or render a video or motion graphic with Lampo: ads, reels,
-  TikToks, promos, product launches, app walkthroughs, explainers, kinetic typography, animated titles and
-  quotes, stat/counter hits, logo stings, intros/outros, end cards, countdowns, beat-synced teasers, "video in
-  stile Apple", cinematic trailers. Lampo renders a short JSON spec to MP4 in seconds (Skia, no browser), with a
-  virtual camera, parallax depth, motion blur, particles and a film look. This skill directs like a professional
-  motion designer: intent, route, style, shot plan with camera and depth, spec, visual review, finish, render.
-  Works from any agent: Lampo MCP tools, the CLI through npx, or the Lampo Cloud HTTP API.
+  Directs and renders cinematic motion graphics to MP4 from a short JSON spec: ads, reels, product launches,
+  app walkthroughs, kinetic titles, logo stings, stat hits, end cards. Use when the user asks for a video, ad,
+  reel, TikTok, teaser, promo, animated title or motion graphic, or wants it to look like Apple or a film trailer.
 ---
 
 # Lampo: motion graphics from JSON
+
+**Use it for:** making, animating, rendering or improving a video, ad, reel, short, TikTok, promo, teaser, sting,
+animated title or motion graphic; and for feedback on a rendered video ("boring", "too slow", "looks cheap").
+**Not for:** editing real footage in an NLE (cutting interviews, color grading clips), 3D scenes, character
+animation, lip sync. Lampo can put designed motion on top of footage, but it is not an editor.
 
 Lampo turns a short JSON spec into an MP4. You don't write HTML, CSS or animation code: you choose layers and
 named effects, and the motion engine does the hard part. A 15s 1080×1920 ad renders in seconds, a preview
@@ -36,20 +37,28 @@ References (read them in the order of the flow; they are short):
 Without the files (MCP only): `lampo_guide` returns the same content; pass `topic`: `spec` (default),
 `routes`, `styles`, `blueprints`, `motion`, `pro`, `review`, or `all`.
 
-## 0. Tools: render from wherever you are
+## 0. Tools: find how to render here (do this first, once)
 
-Use the first one that works in your environment:
+Follow these steps in order and stop at the first that works. Don't guess, don't skip ahead:
+
+1. **You have `lampo_*` MCP tools** (`lampo_validate`, `lampo_preview`, `lampo_render`…) → use them. Done.
+2. **You can run shell commands** → run `bash scripts/preflight.sh` from this skill (or do by hand what it does):
+   - `lampo version` works → use `lampo <command>`.
+   - else `npx -y github:bossartemii/lampo version` within 90 s (Node 18+; the first run downloads Lampo, later runs are instant) → use `npx -y github:bossartemii/lampo <command>`.
+   - else Lampo Cloud below.
+3. **Lampo Cloud over HTTP**: `GET https://dimaartemi-lampo.hf.space/health` with a 20 s timeout (a sleeping server wakes up in up to a minute); if it fails, one retry with 90 s. If it answers `{"ok":true}`, use the HTTP API.
+4. **None works** → still write and deliver the spec file, say plainly that you couldn't render here, and give the two commands to render it (`npx -y github:bossartemii/lampo render spec.json -o video.mp4`, or the `curl` below). Never describe a video you did not render.
 
 | | Validate | Preview (look at it) | Render |
 |---|---|---|---|
-| **A. Lampo MCP tools** | `lampo_validate` | `lampo_preview` (image; `times`) and `lampo_still` | `lampo_render` |
-| **B. CLI** (a shell with Node 18+) | `npx -y github:bossartemii/lampo validate spec.json` | `… preview spec.json -o sheet.png`, `… still spec.json 2.4 -o f.png` | `… render spec.json -o video.mp4 -q standard` |
-| **C. Lampo Cloud HTTP API** (any agent that can make HTTP requests) | `POST /api/validate` | `POST /api/preview` → PNG | `POST /api/render` → JSON with a download `url` |
+| MCP | `lampo_validate` | `lampo_preview` (image; `times`), `lampo_still` | `lampo_render` |
+| CLI (`lampo` or `npx -y github:bossartemii/lampo`) | `… validate spec.json` | `… preview spec.json -o sheet.png`, `… still spec.json 2.4 -o f.png` | `… render spec.json -o video.mp4 -q standard` |
+| HTTP (`https://dimaartemi-lampo.hf.space`) | `POST /api/validate` | `POST /api/preview` → PNG | `POST /api/render` → JSON with a download `url` |
 
-- **B** downloads Lampo from GitHub the first time (~1 min), then it's instant; ffmpeg is bundled. If `lampo` is installed, use `lampo <command>` directly.
-- **C** base URL: `https://dimaartemi-lampo.hf.space` (it may take a minute to wake up). Body: `{"spec": {...}}` (plus `"times": [..]` for preview, `"quality"` for render), `content-type: application/json`. Without a key the video has a Lampo watermark and the result carries `clean.buyUrl` to buy it clean; with a key add `Authorization: Bearer <key>` (or `?key=`). Example:
-  `curl -s -X POST https://dimaartemi-lampo.hf.space/api/render -H "content-type: application/json" -d @body.json`
-- If no way to render is available, still deliver the spec file and tell the user how to render it (B or C).
+HTTP bodies are `{"spec": {...}}` (plus `"times": [..]` for preview, `"quality"` for render) with `content-type: application/json`:
+`curl -s -X POST https://dimaartemi-lampo.hf.space/api/render -H "content-type: application/json" -d @body.json`.
+Without a key the cloud video carries a Lampo watermark and the result has `clean.buyUrl` to buy it clean; with a
+key add `Authorization: Bearer <key>` (or `?key=`). The CLI and MCP never add a watermark.
 
 ## 1. Start from the state
 

@@ -102,6 +102,13 @@ function bar(p) {
       console.log(`✓ valid: ${s.scenes.length} scenes, ${s.duration.toFixed(2)}s, ${s.outWidth}x${s.outHeight}`);
       break;
     }
+    case 'version': case '--version': case '-v': {
+      // also proves the engine works here: the canvas binary loads and ffmpeg runs
+      require('@napi-rs/canvas').createCanvas(2, 2);
+      const ff = require('../src/ffmpeg').ffmpegPath();
+      console.log(`lampo ${require('../package.json').version} · canvas ok · ffmpeg ${ff === 'ffmpeg' ? 'system' : 'bundled'}`);
+      break;
+    }
     case 'effects':
       console.log(JSON.stringify(lampo.effects(), null, 2));
       break;

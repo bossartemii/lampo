@@ -13,3 +13,7 @@ video.json
 video.preview.png
 test-voice.mp3
 keys.json
+
+# paid marketplace package and its private sources (packs): never public
+agensi/*.zip
+private/

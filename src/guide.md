@@ -67,7 +67,7 @@ A clip as a layer: `src` (mp4, mov, webm…), `w`, `h` (one is enough, the other
 A box of child `layers`: `w`, `h`, `anchor`, optional `bg`, `radius` (clips children), `shadow`, `clip: true`. Children use the group's coordinates (0..w, 0..h, `"50%"` = middle of the group) and the group's clock (their `start`/`end` are relative to the group). Effects and keyframes on the group move everything inside. Use it for cards, buttons, stamps, notifications, app screens.
 
 ### phone
-An iPhone mockup: `w` (default 600; height follows), `screen` (screen color, default white), `src` (a screenshot or a screen recording that fills the screen), `statusBar: false`, `time: "9:41"`, `frameColor`.
+An iPhone mockup: `w` (default 600; height follows), `screen` (screen color or gradient array, default white), `src` (a screenshot or a screen recording that fills the screen), `statusBar: false`, `time: "9:41"`, `frameColor`.
 Its `layers` are the screen content in **iPhone points: 390 wide, 844 tall** — design the app UI like a real phone. Typical pattern: several full-screen groups (`"x": 0, "y": 0, "w": 390, "h": 844, "anchor": "top-left"`) with `start`/`end`, each sliding in (`slideLeft`) as the next app screen; plus one `cursor` on top.
 
 ### cursor
@@ -101,7 +101,7 @@ A loading spinner: `size`, `color`, `track` (ring color or false), `speed`. Put 
 ## Effects
 Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, slideUp (from below the frame), scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp, stamp (slams down tilted, like a rubber stamp), draw (paths draw their stroke), glitch (red/cyan chromatic split that jitters and settles), rush (flies in from the right with speed blur — vans, cars, products), slideDown (from above the frame), growLeft, growDown, wipeLeft, wipeDown, unfold (opens from the center line), iris (circular reveal — photos, logos), flip / flipUp (card flip), elastic (springy pop with wobble), swing (hangs from the top edge and swings in), skewIn (slides in leaning, then straightens — sporty), flicker (switches on like a neon sign), focus (comes into focus from a big blur)
 Text only (animate per unit): rise (lines slide up from a mask — keynote style), wordsRise (same, word by word), wordsUp, wordsPop, wordsSlide, wordsFlip, letters, lettersBlur (letters sharpen into place), cascade (letters fall in with a tilt), typewriter
-Loops: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing (pendulum from the top edge), bounce, orbit, heartbeat (double beat), flicker (neon), glitch (periodic RGB bursts on text), shine (a light band sweeps over text and its pill: CTAs, logos, prices; `period`, `duration`). Options: `amount`, `period` (`speed` for rotate/flicker)
+Loops: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing (pendulum from the top edge), bounce, orbit, heartbeat (double beat), flicker (neon), glitch (periodic RGB bursts on text), shine (a light band sweeps over text and its pill: CTAs, logos, prices; `period`, `duration`). Options: `amount`, `period` (`speed` for rotate/flicker), `delay` (seconds after the layer's start before the loop begins)
 Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, spring (physical overshoot and settle), or a cubic-bezier array [x1,y1,x2,y2]
 
 ## Sound effects

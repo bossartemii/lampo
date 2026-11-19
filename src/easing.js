@@ -46,6 +46,8 @@ const easings = {
     if (t === 0 || t === 1) return t;
     return 2 ** (-10 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1;
   },
+  // a physical spring: overshoots and settles, like iOS/After Effects springs
+  spring: (t) => { t = clamp01(t); return t === 1 ? 1 : 1 - Math.exp(-6.5 * t) * Math.cos(3.6 * Math.PI * t); },
   bounceOut: (t) => {
     t = clamp01(t);
     const n1 = 7.5625, d1 = 2.75;

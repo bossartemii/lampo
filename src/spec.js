@@ -8,6 +8,7 @@ const { enter, loop, transitions } = require('./effects');
 const { easings } = require('./easing');
 const { SOUND_NAMES } = require('./sfx');
 const { PRESETS, ICONS } = require('./shapes');
+const { CAMERA_MOVES, PARTICLE_PRESETS } = require('./cinema');
 
 const FORMATS = {
   '9:16': [1080, 1920], reel: [1080, 1920], story: [1080, 1920], tiktok: [1080, 1920],
@@ -22,7 +23,7 @@ const QUALITY = {
   high:     { scale: 1,   crf: 16, preset: 'medium' },
 };
 
-const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'video', 'counter', 'line', 'path', 'icon', 'spinner', 'group', 'phone', 'cursor'];
+const LAYER_TYPES = ['text', 'rect', 'circle', 'image', 'video', 'counter', 'line', 'path', 'icon', 'spinner', 'group', 'phone', 'cursor', 'particles'];
 
 class SpecError extends Error {
   constructor(problems) {
@@ -88,6 +89,11 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     problems.push('scale must be a positive finite number');
   }
   spec.theme = { font: 'Inter', color: '#ffffff', accent: '#0A84FF', background: '#000000', ...(spec.theme || {}) };
+  if (spec.look != null) {
+    if (typeof spec.look !== 'object' || Array.isArray(spec.look)) problems.push('look must be an object: { "grain": 0.06, "lightLeak": true, "letterbox": true }');
+    else for (const k of Object.keys(spec.look)) if (!['grain', 'lightLeak', 'letterbox', 'letterboxColor'].includes(k)) problems.push(`look.${k} does not exist. Use: grain, lightLeak, letterbox, letterboxColor`);
+  }
+  if (spec.motionBlur != null && typeof spec.motionBlur !== 'boolean' && (typeof spec.motionBlur !== 'object' || Array.isArray(spec.motionBlur))) problems.push('motionBlur must be true or { "samples": 6, "shutter": 0.5 }');
   spec.baseDir = spec.baseDir || baseDir;
   const resolve = (p) => (!p || /^(data:|https?:)/.test(p) || path.isAbsolute(p) ? p : path.resolve(spec.baseDir, p));
   spec.fonts = (spec.fonts || []).map((f) => ({ ...f, path: resolve(f.path) }));
@@ -114,6 +120,8 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
     if (!L.type) L.type = L.text != null ? 'text' : L.path || L.taps ? 'cursor' : L.shape || L.d ? 'path' : L.layers ? 'group' : L.src ? (/\.(mp4|mov|m4v|webm|mkv|avi)(\?|$)/i.test(L.src) ? 'video' : 'image') : 'rect';
     if (!LAYER_TYPES.includes(L.type)) problems.push(`${where}: type "${L.type}" does not exist. Types: ${LAYER_TYPES.join(', ')}`);
     if (L.type === 'text' && (L.text == null || L.text === '')) problems.push(`${where}: a text layer needs "text"`);
+    if (L.type === 'particles' && !PARTICLE_PRESETS.includes(L.preset)) problems.push(`${where}: particles need "preset": ${PARTICLE_PRESETS.join(', ')}`);
+    if (L.depth != null && !(typeof L.depth === 'number' && L.depth >= 0 && L.depth <= 3)) problems.push(`${where}: "depth" (parallax) must be a number from 0 to 3`);
     if (L.type === 'image' || L.type === 'video') {
       if (!L.src) problems.push(`${where}: an ${L.type} layer needs "src"`);
       else { L.src = resolve(L.src); checkFile(L.src, where); }
@@ -159,6 +167,12 @@ function normalize(input, { baseDir = process.cwd() } = {}) {
       problems.push(`${where}: "duration" must be a positive finite number of seconds`);
     }
     S.duration = typeof S.duration === 'number' && Number.isFinite(S.duration) && S.duration > 0 ? S.duration : 1;
+    if (S.camera != null) {
+      for (const m of Array.isArray(S.camera) ? S.camera : [S.camera]) {
+        const name = typeof m === 'string' ? m : m && m.move;
+        if (!CAMERA_MOVES.includes(name)) problems.push(`${where}.camera: move "${name}" does not exist. Moves: ${CAMERA_MOVES.join(', ')} (string, { "move", "amount", "start", "duration", "easing" }, or an array)`);
+      }
+    }
     let tr = S.transition == null ? null : typeof S.transition === 'string' ? { type: S.transition } : { ...S.transition };
     if (tr && !transitions.includes(tr.type)) {
       problems.push(`${where}.transition: "${tr.type}" does not exist. Use: ${transitions.join(', ')}`);

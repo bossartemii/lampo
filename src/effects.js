@@ -90,6 +90,8 @@ const loop = {
   heartbeat:(s, t, o) => { const a = o.amount ?? 0.08, per = o.period ?? 1.1, f = (t / per) % 1; s.scale *= 1 + a * (Math.exp(-((f - 0.1) ** 2) / 0.002) + 0.6 * Math.exp(-((f - 0.3) ** 2) / 0.002)); },
   flicker:  (s, t, o) => { s.opacity *= hash(Math.floor(t * (o.speed ?? 12))) < (o.amount ?? 0.15) ? 0.25 : 1; },
   // glitch: short bursts of chromatic split and jitter every "period" seconds
+  // shine: a light band sweeps across text (and its pill) every "period" seconds
+  shine:    (s, t, o) => { const per = o.period ?? 2.6, sweep = o.duration ?? 0.7, f = ((t % per) + per) % per; if (t >= 0 && f < sweep) s.shine = f / sweep; },
   glitch:   (s, t, o) => { const per = o.period ?? 2, f = t % per; if (f < 0.18) { const a = o.amount ?? 12; s.rgb += a; s.dx += Math.sin(t * 177) * a * 0.8; } },
 };
 
@@ -117,6 +119,8 @@ function describe() {
     exit: 'Qualsiasi effetto di entrata funziona anche come uscita (out), al contrario.',
     loop: Object.keys(loop),
     transitions,
+    camera: require('./cinema').CAMERA_MOVES,
+    particles: require('./cinema').PARTICLE_PRESETS,
   };
 }
 

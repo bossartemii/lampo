@@ -8,6 +8,7 @@ const video = require('./video');
 const shapes = require('./shapes');
 const { enter, loop, splitTiming } = require('./effects');
 const { getEasing, easings, clamp01, lerp } = require('./easing');
+const cinema = require('./cinema');
 
 // ---------- utilities ----------
 
@@ -144,7 +145,7 @@ function layoutOnce(ctx, L, theme, spec) {
 // ---------- animated layer state ----------
 
 function baseState(L) {
-  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null, draw: 1, rgb: 0, skew: 0 };
+  return { opacity: L.opacity ?? 1, dx: 0, dy: 0, scale: L.scale ?? 1, scaleX: 1, scaleY: 1, rotate: L.rotate ?? 0, blur: 0, clip: null, origin: null, draw: 1, rgb: 0, skew: 0, shine: null };
 }
 
 function layerWindow(L, sceneDur) {
@@ -251,6 +252,7 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
     ctx.fillStyle = makeFill(ctx, bg.color, box.x - pad, box.y - pad, box.w + pad * 2, box.h + pad * 2, 'rgba(0,0,0,0.6)');
     roundRect(ctx, box.x - pad, box.y - pad * 0.8, box.w + pad * 2, box.h + pad * 1.6, bg.radius ?? pad);
     ctx.fill();
+    if (s.shine != null) { ctx.fillStyle = shineFill(ctx, s.shine, box.x - pad, box.w + pad * 2, 0.5); ctx.fill(); }
     ctx.restore();
   }
 
@@ -260,6 +262,7 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   const fill = makeFill(ctx, L.color, box.x, box.y, box.w, box.h, theme.color);
+  const shineText = s.shine != null ? shineFill(ctx, s.shine, box.x, box.w, 0.75) : null;
   const accentFill = makeFill(ctx, L.accent ?? theme.accent, box.x, box.y, box.w, box.h, theme.accent);
   if (L.stroke) { ctx.strokeStyle = L.stroke.color || '#000'; ctx.lineWidth = L.stroke.width ?? 4; ctx.lineJoin = 'round'; }
   setShadow(ctx, L, scaleOut);
@@ -340,6 +343,7 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
       if (L.stroke) ctx.strokeText(txt, x, u.cy);
       ctx.fillStyle = accent ? accentFill : fill;
       ctx.fillText(txt, x, u.cy);
+      if (shineText) { ctx.save(); ctx.shadowColor = 'transparent'; ctx.fillStyle = shineText; ctx.fillText(txt, x, u.cy); ctx.restore(); }
     };
     if (u.char != null) paint(u.char, u.x, u.accent);
     else for (const w of u.words) paint(w.text, w.ax, w.accent);
@@ -358,6 +362,17 @@ function drawText(ctx, L, theme, spec, s, split, scaleOut, lt) {
     }
   }
   ctx.restore();
+}
+
+// the light band of the "shine" loop: p 0→1 sweeps it across [x, x + w]
+function shineFill(ctx, p, x, w, strength) {
+  const band = Math.max(40, w * 0.22);
+  const cx = x - band + (w + band * 2) * p;
+  const g = ctx.createLinearGradient(cx - band, 0, cx + band, band * 0.6);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(0.5, `rgba(255,255,255,${strength})`);
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  return g;
 }
 
 function shapeBox(L) {
@@ -554,6 +569,11 @@ function drawLayer(ctx, L, pt, win, env, frame) {
   else if (L.type === 'icon') drawPath(ctx, { ...L, w: L.size ?? 96, h: L.size ?? 96, strokeWidth: ((L.size ?? 96) / 24) * (L.strokeWidth ?? 2.1) }, env.theme, s, env.scaleOut);
   else if (L.type === 'spinner') { const sz = L.size ?? 48; ctx.save(); applyTransform(ctx, s, { x: -sz / 2, y: -sz / 2, w: sz, h: sz }, env.scaleOut); shapes.drawSpinner(ctx, L, lt); ctx.restore(); }
   else if (L.type === 'path') drawPath(ctx, L, env.theme, s, env.scaleOut);
+  else if (L.type === 'particles') {
+    const pw = L.w ?? frame.w, ph = L.h ?? frame.h;
+    ctx.save(); applyTransform(ctx, s, { x: -pw / 2, y: -ph / 2, w: pw, h: ph }, env.scaleOut);
+    cinema.drawParticles(ctx, { ...L, w: pw, h: ph }, lt, env.theme); ctx.restore();
+  }
   else if (L.type === 'group') drawGroup(ctx, L, s, lt, win, env);
   else if (L.type === 'phone') drawPhone(ctx, orig === L ? L : Object.assign(Object.create(orig), L), s, lt, win, env);
   else drawShape(ctx, L, env.theme, s, env.scaleOut);
@@ -626,8 +646,20 @@ function drawBackground(ctx, bg, st, spec, env) {
 function drawScene(ctx, S, t, env) {
   const st = t - S.start;
   env.sceneDur = S.duration;
+  const W0 = env.spec.width, H0 = env.spec.height;
+  // the scene camera moves every layer by its depth (parallax); the background is kept covering the frame
+  const cam = cinema.cameraAt(S.camera, st, S.duration, W0, H0);
+  ctx.save();
+  if (cam) cinema.applyCamera(ctx, cam, S.backgroundDepth ?? 0.35, W0, H0, true);
   drawBackground(ctx, S.background, st, env.spec, env);
-  for (const L of S.layers) drawLayer(ctx, L, st, layerWindow(L, S.duration), env);
+  ctx.restore();
+  for (const L of S.layers) {
+    if (!cam) { drawLayer(ctx, L, st, layerWindow(L, S.duration), env); continue; }
+    ctx.save();
+    cinema.applyCamera(ctx, cam, L.depth ?? 1, W0, H0, false);
+    drawLayer(ctx, L, st, layerWindow(L, S.duration), env);
+    ctx.restore();
+  }
   if (S.vignette !== false && (S.vignette || env.spec.vignette)) {
     const W = env.spec.width, H = env.spec.height;
     const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
@@ -711,7 +743,7 @@ async function createRenderer(spec) {
     return c;
   };
 
-  function renderAt(t) {
+  function renderRaw(t) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.filter = 'none';
@@ -805,6 +837,31 @@ async function createRenderer(spec) {
     ctx.setTransform(scaleOut, 0, 0, scaleOut, 0, 0);
     env.sceneDur = spec.duration;
     for (const L of spec.layers) drawLayer(ctx, L, t, layerWindow(L, spec.duration), env);
+    return canvas;
+  }
+
+  // motion blur: average several sub-frames spread over the shutter (like a real camera)
+  const mb = spec.motionBlur ? (typeof spec.motionBlur === 'object' ? spec.motionBlur : {}) : null;
+  const mbSamples = mb ? Math.max(2, Math.min(16, Math.round(mb.samples ?? (spec.quality === 'draft' ? 4 : 6)))) : 0;
+  const mbShutter = mb ? clamp01(mb.shutter ?? 0.5) : 0;
+  const acc = mb ? createCanvas(W, H) : null;
+  function renderAt(t) {
+    if (!mb) { renderRaw(t); cinema.drawLook(ctx, spec.look, t, W, H, scaleOut, createCanvas); return canvas; }
+    const ax = acc.getContext('2d');
+    ax.setTransform(1, 0, 0, 1, 0, 0);
+    for (let i = 0; i < mbSamples; i++) {
+      const ti = Math.max(0, Math.min(spec.duration, t + ((i / (mbSamples - 1)) - 0.5) * mbShutter / spec.fps));
+      renderRaw(ti);
+      // running average: sample i is mixed in with weight 1/(i+1)
+      ax.globalAlpha = 1 / (i + 1);
+      ax.drawImage(canvas, 0, 0);
+    }
+    ax.globalAlpha = 1;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.filter = 'none';
+    ctx.drawImage(acc, 0, 0);
+    cinema.drawLook(ctx, spec.look, t, W, H, scaleOut, createCanvas);
     return canvas;
   }
 

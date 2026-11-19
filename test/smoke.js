@@ -94,7 +94,11 @@ const captions = require('../src/captions');
   );
   for (const shape of ['underline', 'circle', 'arrow', 'check']) scenes[6].layers.push({ type: 'path', shape, w: 300, h: 80, y: `${20 + scenes[6].layers.length * 8}%`, in: 'draw' });
   scenes[6].layers.push({ d: 'M10 80 Q 50 10 90 80 T 170 80', w: 300, h: 120, y: '80%', in: 'draw' });
-  const spec = { format: '1:1', fps: 24, quality: 'draft', audio: { src: 'a.mp3', volume: 0.5 }, sfx: true, sounds: [{ sound: 'riser', at: 0.2, duration: 0.8 }, { sound: 'boom', at: 1.0 }, { sound: 'glitch', at: 2 }, { sound: 'click', at: 2.5 }], scenes, layers: [{ text: 'LOGO', size: 30, x: 'right', y: 'top', anchor: 'top-right', in: 'fade' }] };
+  // cinematic layer: every camera move (with parallax depth), every particle preset
+  fx.camera.forEach((move, i) => { scenes[i % scenes.length].camera = i % 3 ? move : [move, 'handheld']; });
+  fx.particles.forEach((preset, i) => scenes[i % scenes.length].layers.push({ type: 'particles', preset, depth: 0.5 + (i % 3) * 0.5, count: 20 }));
+  scenes[2].layers.push({ text: 'Shine', size: 60, bg: { color: '#FFB800' }, y: '30%', loop: { effect: 'shine', period: 0.8 }, in: { effect: 'popIn', easing: 'spring' } });
+  const spec = { format: '1:1', fps: 24, quality: 'draft', motionBlur: { samples: 3 }, look: { grain: 0.06, lightLeak: true, letterbox: true }, audio: { src: 'a.mp3', volume: 0.5 }, sfx: true, sounds: [{ sound: 'riser', at: 0.2, duration: 0.8 }, { sound: 'boom', at: 1.0 }, { sound: 'glitch', at: 2 }, { sound: 'click', at: 2.5 }], scenes, layers: [{ text: 'LOGO', size: 30, x: 'right', y: 'top', anchor: 'top-right', in: 'fade' }] };
 
   // the spec must be valid
   const s = lampo.validate(spec, { baseDir: dir });
@@ -128,13 +132,16 @@ const captions = require('../src/captions');
   assert.throws(() => lampo.validate({ width: 200, height: 0, scenes: [{ duration: 1 }] }), /height must be a positive finite number/);
   assert.throws(() => lampo.validate({ fps: 121, scenes: [{ duration: 1 }] }), /fps must be a number between 1 and 120/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ text: 'x', in: 'boh' }] }] }), /effect "boh" does not exist/);
+  assert.throws(() => lampo.validate({ scenes: [{ duration: 1, camera: 'zoomy', layers: [] }] }), /camera: move "zoomy" does not exist/);
+  assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'particles', preset: 'rain' }] }] }), /particles need "preset"/);
+  assert.throws(() => lampo.validate({ look: { sepia: 1 }, scenes: [{ duration: 1 }] }), /look.sepia does not exist/);
   assert.throws(() => lampo.validate({ format: 'xx', scenes: [] }), /unknown format "xx"/);
   assert.throws(() => lampo.validate({ sounds: [{ sound: 'meow', at: 1 }], scenes: [{ duration: 1 }] }), /sound "meow" does not exist/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'video', src: 'nope.mp4' }] }] }), /file not found/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'path', shape: 'blob' }] }] }), /shape "blob" does not exist/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'icon', name: 'unicorn' }] }] }), /icon "unicorn" does not exist/);
   assert.throws(() => lampo.validate({ scenes: [{ duration: 1, layers: [{ type: 'phone', layers: [{ type: 'cursor' }] }] }] }), /cursor needs "path"/);
-  assert.strictEqual(s.scenes[4].layers[s.scenes[4].layers.length - 1].type, 'video');
+  assert.ok(s.scenes[4].layers.some((L) => L.type === 'video' && L.trim === 0.5), 'clip without type inferred as video');
   const sfx = require('../src/sfx');
   const events = sfx.buildEvents(s);
   for (const name of ['whoosh', 'pop', 'tick', 'chime', 'riser', 'boom', 'ding', 'click', 'impact', 'glitch']) assert(events.some((e) => e.sound === name), `missing auto/manual sound ${name}`);

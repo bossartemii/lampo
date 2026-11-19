@@ -49,6 +49,7 @@
     "@napi-rs/canvas": "^0.1.100"
   },
   "optionalDependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "ffmpeg-static": "^5.2.0"
   },
   "license": "Apache-2.0",

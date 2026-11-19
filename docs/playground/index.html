@@ -72,6 +72,8 @@
   .time { font: 400 13px var(--mono); color: var(--muted); white-space: nowrap; }
 
   .card { background: #fff; border: 1.5px solid var(--ink); border-radius: 14px; padding: 14px 16px; }
+  #brief { width: 100%; border: 1.5px solid var(--ink); border-radius: 10px; padding: 10px 12px; font: 400 15px/1.45 var(--sans); resize: vertical; background: #fff; }
+  .keybox { display: block; margin-top: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 500 12.5px var(--mono); overflow-wrap: anywhere; user-select: all; }
   .card.buy { border-width: 2px; box-shadow: 4px 4px 0 var(--ink); }
   .card h2 { font-size: 16px; margin: 0 0 4px; letter-spacing: -0.01em; }
   .card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
@@ -136,6 +138,19 @@
       <span class="time" id="time">0.00 / 0.00 s</span>
     </div>
 
+    <div class="card buy" id="aiCard" hidden>
+      <h2>Create with AI</h2>
+      <p>No JSON needed: describe your video. Lampo AI directs it with the Lampo skill, checks the preview, and renders it clean.</p>
+      <textarea id="brief" rows="4" maxlength="4000" placeholder="A 15-second reel for my pizzeria Roma in Milan: margherita €5 this week, warm style, end with 'Order on 02 1234 5678'." aria-label="Describe your video"></textarea>
+      <div class="row" style="margin-top:10px">
+        <select id="aiFormat" aria-label="Format"><option value="9:16">9:16 reel</option><option value="1:1">1:1 post</option><option value="4:5">4:5 feed</option><option value="16:9">16:9 video</option></select>
+        <button class="btn bolt" id="aiBuy" type="button">Generate · <span id="aiPrice"></span></button>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="aiSub" type="button">Unlimited AI · <span id="aiSubPrice"></span>/month</button></div>
+      <div class="note" id="aiNote" role="status" aria-live="polite"></div>
+      <div class="result" id="aiResult"></div>
+    </div>
+
     <div class="card buy" id="buyCard" hidden>
       <h2>Download without watermark</h2>
       <p>The clean video, rendered in full quality on Lampo Cloud. Pay once with Stripe, the download starts right after.</p>
@@ -158,10 +173,17 @@
       <div class="note" id="dlNote" role="status" aria-live="polite"></div>
     </div>
 
+    <div class="card" id="keyCard" hidden>
+      <h2>Lampo Key · lifetime</h2>
+      <p>Unlimited clean renders, forever: here, in ChatGPT and Claude, and through the API. One payment.</p>
+      <div class="row"><button class="btn" id="keyBuy" type="button">Buy · <span id="keyPrice"></span></button></div>
+      <div class="note" id="keyNote" role="status" aria-live="polite"></div>
+    </div>
+
     <div class="card">
       <details id="cloudBox">
-        <summary>Have a Lampo Cloud key?</summary>
-        <p style="margin-top:8px">With a key that has credits the server renders the clean MP4 directly (one credit per video).</p>
+        <summary>Have a Lampo key?</summary>
+        <p style="margin-top:8px">Lifetime, subscription or credit keys render the clean MP4 directly. Keys you buy here are saved in this browser.</p>
         <label class="field">Cloud URL <input id="cloudUrl" type="url" placeholder="https://your-lampo-cloud.example.com" autocomplete="off"></label>
         <label class="field">Key <input id="cloudKey" type="password" placeholder="lk_…" autocomplete="off"></label>
         <div class="row" style="margin-top:12px"><button class="btn primary" id="cloudGo" type="button">Render MP4 on the cloud</button></div>
@@ -422,66 +444,150 @@
     btn.disabled = false;
   });
 
-  // ---------- pay once, download the clean video (Stripe Checkout on Lampo Cloud) ----------
+  // ---------- Lampo Cloud: AI videos, clean downloads, lifetime keys (Stripe Checkout) ----------
   const cloudBase = () => ($('cloudUrl').value.trim() || cfg.cloudUrl || '').replace(/\/+$/, '');
   // text/plain bodies keep these simple requests: no CORS preflight
   const cloudPost = (p, obj) => fetch(`${cloudBase()}${p}`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(obj) })
     .then(async (r) => { const d = await r.json().catch(() => ({ error: `HTTP ${r.status}` })); if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`); return d; });
+  const myKey = () => $('cloudKey').value.trim();
+  const hasSub = () => /^lks_/.test(myKey());
+  const hasCleanKey = () => !!myKey(); // lifetime, subscription or credits: the cloud decides
+  const asleep = (e) => (e.message === 'Failed to fetch' ? 'Could not reach Lampo Cloud. If it was asleep it is waking up: try again in a minute.' : e.message);
+  let health = null;
+
+  function videoResult(box, url) {
+    const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true;
+    const a = document.createElement('a'); a.href = url; a.className = 'btn bolt'; a.textContent = 'Download MP4';
+    Object.assign(a.style, { display: 'inline-block', marginTop: '10px', textDecoration: 'none', color: 'var(--ink)' });
+    a.download = '';
+    box.innerHTML = ''; box.append(v, a);
+  }
+
+  function refreshOffers() {
+    if (!health || !health.payments) return;
+    const p = health.prices || {};
+    $('price').textContent = p.clean || health.price;
+    $('buy').firstChild.textContent = hasCleanKey() ? 'Render clean with your key ' : 'Pay ';
+    $('price').hidden = hasCleanKey();
+    $('buy').lastChild.textContent = hasCleanKey() ? '' : ' and download';
+    $('buyCard').hidden = false;
+    if (p.lifetime) { $('keyPrice').textContent = p.lifetime; $('keyCard').hidden = /^lkl_/.test(myKey()); }
+    if (health.ai) {
+      $('aiCard').hidden = false;
+      $('aiPrice').textContent = p.ai;
+      $('aiSubPrice').textContent = p.ai_sub;
+      $('aiBuy').firstChild.textContent = hasSub() ? 'Generate (in your plan)' : 'Generate · ';
+      $('aiPrice').hidden = hasSub();
+      $('aiSub').hidden = hasSub();
+    }
+  }
 
   async function setupPayments() {
     if (!cloudBase()) return;
-    try {
-      const h = await fetch(`${cloudBase()}/health`).then((r) => r.json());
-      if (!h.payments) return;
-      $('price').textContent = h.price;
-      $('buyCard').hidden = false;
-    } catch (e) { /* cloud asleep or unreachable: only the free download */ }
+    try { health = await fetch(`${cloudBase()}/health`).then((r) => r.json()); refreshOffers(); }
+    catch (e) { /* cloud asleep or unreachable: only the free download */ }
   }
+  $('cloudKey').addEventListener('change', () => { store.set('lampo-cloud-key', myKey()); refreshOffers(); });
 
-  $('buy').addEventListener('click', async () => {
-    const note = $('buyNote'), btn = $('buy');
+  // start a Stripe Checkout; what to deliver when the buyer comes back is kept in sessionStorage
+  async function startCheckout(kind, payload, note, btn) {
     note.className = 'note';
-    let spec;
-    try { spec = JSON.parse(code.value); } catch (e) { note.className = 'note err'; note.textContent = 'Fix the JSON first.'; return; }
     btn.disabled = true; note.textContent = 'Opening the secure checkout…';
     try {
-      // the spec comes back after the payment page
-      try { sessionStorage.setItem('lampo-paid-spec', code.value); } catch (e) {}
-      const d = await cloudPost('/api/checkout', { spec, return: location.origin + location.pathname });
+      try { sessionStorage.setItem('lampo-pending', JSON.stringify({ kind, ...payload })); } catch (e) {}
+      const d = await cloudPost('/api/checkout', { kind, ...payload, return: location.origin + location.pathname });
       location.href = d.url;
-    } catch (e) {
-      note.className = 'note err';
-      note.textContent = e.message === 'Failed to fetch' ? 'Could not reach Lampo Cloud. If it was asleep it is waking up: try again in a minute.' : e.message;
-      btn.disabled = false;
-    }
+    } catch (e) { note.className = 'note err'; note.textContent = asleep(e); btn.disabled = false; }
+  }
+
+  // clean video of the spec in the editor: with a key it renders right away, otherwise pay once
+  $('buy').addEventListener('click', async () => {
+    const note = $('buyNote'), btn = $('buy');
+    let spec;
+    try { spec = JSON.parse(code.value); } catch (e) { note.className = 'note err'; note.textContent = 'Fix the JSON first.'; return; }
+    if (!hasCleanKey()) return startCheckout('clean', { spec }, note, btn);
+    btn.disabled = true; note.className = 'note'; note.textContent = 'Rendering on Lampo Cloud…';
+    try {
+      const r = await fetch(`${cloudBase()}/api/render?key=${encodeURIComponent(myKey())}`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ spec, quality: 'standard' }) });
+      const d = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`);
+      if (d.watermark) note.textContent = 'This key has no clean renders left, so the video has the watermark. Pay for the clean one, or get a Lampo Key.';
+      else note.textContent = `✓ Clean video ready${d.creditsLeft != null ? ` · ${d.creditsLeft} credits left` : ''} (the link works for 15 minutes).`;
+      videoResult($('buyResult'), d.url);
+    } catch (e) { note.className = 'note err'; note.textContent = asleep(e); }
+    btn.disabled = false;
   });
+
+  $('keyBuy').addEventListener('click', () => startCheckout('lifetime', {}, $('keyNote'), $('keyBuy')));
+  $('aiSub').addEventListener('click', () => startCheckout('ai_sub', {}, $('aiNote'), $('aiSub')));
+  $('aiBuy').addEventListener('click', async () => {
+    const note = $('aiNote'), btn = $('aiBuy'), brief = $('brief').value.trim(), format = $('aiFormat').value;
+    if (!brief) { note.className = 'note err'; note.textContent = 'Describe the video you want.'; $('brief').focus(); return; }
+    if (!hasSub()) return startCheckout('ai', { brief, format }, note, btn);
+    btn.disabled = true; note.className = 'note'; note.textContent = 'Lampo AI is directing your video: writing, checking the preview, rendering… (about a minute)';
+    try {
+      const r = await fetch(`${cloudBase()}/api/ai?key=${encodeURIComponent(myKey())}`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ brief, format }) });
+      const d = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`);
+      showAi(d);
+    } catch (e) { note.className = 'note err'; note.textContent = asleep(e); }
+    btn.disabled = false;
+  });
+
+  function showAi(d) {
+    code.value = JSON.stringify(d.spec, null, 2);
+    try { localStorage.setItem('lampo-draft', code.value); } catch (e) {}
+    t = 0; build();
+    $('aiNote').className = 'note';
+    $('aiNote').textContent = '✓ Your video is ready. Its JSON is in the editor: change anything and download it again.';
+    videoResult($('aiResult'), d.url);
+    $('aiCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function saveKey(key, kind) {
+    $('cloudKey').value = key;
+    store.set('lampo-cloud-key', key);
+    const note = kind === 'lifetime' ? $('keyNote') : $('aiNote');
+    (kind === 'lifetime' ? $('keyCard') : $('aiCard')).hidden = false;
+    note.className = 'note';
+    note.innerHTML = '';
+    const msg = document.createElement('div');
+    msg.textContent = kind === 'lifetime'
+      ? '✓ Your Lampo Key: unlimited clean renders. It is saved in this browser; copy it to use it elsewhere.'
+      : '✓ Your Lampo AI key: AI videos and clean renders while subscribed. Saved in this browser; copy it to use it elsewhere.';
+    const k = document.createElement('code'); k.className = 'keybox'; k.textContent = key;
+    const c = document.createElement('code'); c.className = 'keybox'; c.textContent = `${cloudBase()}/mcp/${key}`;
+    const l = document.createElement('div'); l.textContent = 'Connector URL for Claude.ai and ChatGPT:'; l.style.marginTop = '8px';
+    note.append(msg, k, l, c);
+  }
 
   let paidFor = null; // the spec of the video bought in this visit
   async function deliverPaid(sessionId) {
-    const note = $('buyNote'), out = $('buyResult');
-    $('buyCard').hidden = false;
-    $('buy').disabled = true;
+    let pending = {};
+    try { pending = JSON.parse(sessionStorage.getItem('lampo-pending') || '{}'); } catch (e) {}
+    const kind = pending.kind || 'clean';
+    const note = kind === 'ai' || kind === 'ai_sub' ? $('aiNote') : kind === 'lifetime' ? $('keyNote') : $('buyNote');
     note.className = 'note';
-    note.textContent = 'Payment received. Rendering your clean video…';
-    let specText = '';
-    try { specText = sessionStorage.getItem('lampo-paid-spec') || ''; } catch (e) {}
-    if (specText) { code.value = specText; build(); }
+    note.textContent = kind === 'ai' ? 'Payment received. Lampo AI is directing your video (about a minute)…' : kind === 'clean' ? 'Payment received. Rendering your clean video…' : 'Payment received…';
+    if (kind === 'clean' && pending.spec) { code.value = JSON.stringify(pending.spec, null, 2); build(); }
+    if (kind === 'ai' && pending.brief) { $('brief').value = pending.brief; $('aiFormat').value = pending.format || '9:16'; }
     try {
-      const d = await cloudPost('/api/clean', { session_id: sessionId, spec: specText ? JSON.parse(specText) : undefined });
-      note.textContent = '✓ Paid. Your video without watermark is ready (the link works for 15 minutes).';
-      // delivered: forget the purchase so a reload or a new video starts fresh, and allow the next purchase
+      const d = await cloudPost('/api/claim', { session_id: sessionId, spec: pending.spec, brief: pending.brief, format: pending.format });
+      // delivered: forget the purchase so a reload or a new video starts fresh
       history.replaceState(null, '', location.pathname);
-      try { sessionStorage.removeItem('lampo-paid-spec'); } catch (e) {}
-      paidFor = code.value;
-      $('buy').disabled = false;
-      const v = document.createElement('video'); v.src = d.url; v.controls = true; v.playsInline = true;
-      const a = document.createElement('a'); a.href = d.url; a.className = 'btn bolt'; a.textContent = 'Download MP4'; a.style.display = 'inline-block'; a.style.marginTop = '10px'; a.style.textDecoration = 'none'; a.style.color = 'var(--ink)'; a.download = '';
-      out.innerHTML = ''; out.append(v, a);
-      $('buyCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      try { sessionStorage.removeItem('lampo-pending'); } catch (e) {}
+      if (d.key) saveKey(d.key, d.kind);
+      else if (d.kind === 'ai') showAi(d);
+      else {
+        note.textContent = '✓ Paid. Your video without watermark is ready (the link works for 15 minutes).';
+        paidFor = code.value;
+        videoResult($('buyResult'), d.url);
+        $('buyCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      refreshOffers();
     } catch (e) {
       note.className = 'note err';
-      note.textContent = `${e.message} Reload this page to try again: the payment is kept.`;
-      $('buy').disabled = false;
+      note.textContent = `${asleep(e)} Reload this page to try again: the payment is kept.`;
     }
   }
 
@@ -498,7 +604,10 @@
       const o = document.createElement('option'); o.value = ex.id; o.textContent = ex.name; groups[ex.group].appendChild(o);
     }
     if (paidSession) {
-      // back from Stripe: keep ?paid= in the URL so a reload retries the delivery
+      // back from Stripe: keep ?paid= in the URL so a reload retries the delivery; the editor keeps the draft
+      let draft = '';
+      try { draft = localStorage.getItem('lampo-draft') || ''; } catch (e) {}
+      if (draft) { code.value = draft; sel.value = ''; build(); } else { const search = location.search; sel.value = cfg.example || 'examples-showreel'; loadExample(sel.value); history.replaceState(null, '', location.pathname + search); }
       await setupPayments();
       deliverPaid(paidSession);
       return;

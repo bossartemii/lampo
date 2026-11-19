@@ -12,6 +12,7 @@ const path = require('path');
  // a fake Stripe: Checkout Sessions in memory, marked paid by the test
 function fakeStripe() {
   const sessions = new Map();
+  const subscriptions = new Map();
   const srv = http.createServer(async (req, res) => {
     const chunks = [];
     for await (const c of req) chunks.push(c);
@@ -20,15 +21,46 @@ function fakeStripe() {
     if (req.method === 'POST' && req.url === '/v1/checkout/sessions') {
       const f = new URLSearchParams(Buffer.concat(chunks).toString());
       const id = `cs_test_${sessions.size + 1}abcdefgh`;
-      const s = { id, url: `https://checkout.stripe.test/${id}`, payment_status: 'unpaid', amount: f.get('line_items[0][price_data][unit_amount]'), success_url: f.get('success_url'), cancel_url: f.get('cancel_url'), taxCode: f.get('line_items[0][price_data][product_data][tax_code]'), metadata: { spec_hash: f.get('metadata[spec_hash]') } };
+      const mode = f.get('mode');
+      const s = { id, mode, status: 'open', url: `https://checkout.stripe.test/${id}`, payment_status: 'unpaid', amount: f.get('line_items[0][price_data][unit_amount]'), interval: f.get('line_items[0][price_data][recurring][interval]'), success_url: f.get('success_url'), cancel_url: f.get('cancel_url'), taxCode: f.get('line_items[0][price_data][product_data][tax_code]'), metadata: { spec_hash: f.get('metadata[spec_hash]'), ref: f.get('metadata[ref]'), kind: f.get('metadata[kind]') }, subscription: mode === 'subscription' ? `sub_test${sessions.size + 1}` : null };
       sessions.set(id, s);
       return send(s);
     }
     const m = /^\/v1\/checkout\/sessions\/(cs_[\w]+)$/.exec(req.url);
     if (req.method === 'GET' && m && sessions.has(m[1])) return send(sessions.get(m[1]));
+    const sub = /^\/v1\/subscriptions\/(sub_\w+)$/.exec(req.url);
+    if (req.method === 'GET' && sub) return send({ id: sub[1], status: subscriptions.get(sub[1]) || 'canceled' });
     send({ error: { message: 'not found' } }, 404);
   });
-  return { sessions, srv };
+  return { sessions, subscriptions, srv };
+}
+
+// a fake Claude API: streams scripted answers (an invalid spec first, so the repair turn runs)
+function fakeClaude() {
+  const calls = [];
+  const good = { format: '1:1', fps: 12, quality: 'draft', scenes: [{ duration: 1, layers: [{ text: 'Pizza **Roma**', in: 'popIn' }] }] };
+  const answers = [
+    JSON.stringify({ ...good, scenes: [{ duration: 1, layers: [{ text: 'x', in: 'flyIn' }] }] }),
+    JSON.stringify(good),
+    JSON.stringify({ ...good, scenes: [{ duration: 1.2, layers: [{ text: 'Pizza **Roma**', in: 'rise' }] }] }),
+  ];
+  const srv = http.createServer(async (req, res) => {
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    calls.push({ url: req.url, headers: req.headers, body });
+    const text = answers[Math.min(calls.length - 1, answers.length - 1)];
+    res.writeHead(200, { 'content-type': 'text/event-stream' });
+    const ev = (type, data) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
+    ev('message_start', { message: { id: `msg_${calls.length}`, type: 'message', role: 'assistant', model: body.model, content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 10, output_tokens: 1 } } });
+    ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } });
+    ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text } });
+    ev('content_block_stop', { index: 0 });
+    ev('message_delta', { delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 20 } });
+    ev('message_stop', {});
+    res.end();
+  });
+  return { calls, srv };
 }
 
 const freePort = () => new Promise((resolve) => { const s = net.createServer().listen(0, () => { const p = s.address().port; s.close(() => resolve(p)); }); });
@@ -41,8 +73,11 @@ const MASTER = 'm'.repeat(40);
   const stripe = fakeStripe();
   const stripePort = await freePort();
   await new Promise((r) => stripe.srv.listen(stripePort, '127.0.0.1', r));
+  const claude = fakeClaude();
+  const claudePort = await freePort();
+  await new Promise((r) => claude.srv.listen(claudePort, '127.0.0.1', r));
   const srv = spawn(process.execPath, [path.join(__dirname, '../mcp/server.js'), '--http', String(port)], {
-    env: { ...process.env, PORT: String(port), LAMPO_TOKEN: MASTER, LAMPO_FILE_SECRET: 's'.repeat(40), LAMPO_PUBLIC_URL: base, LAMPO_OUT: path.join(dir, 'out'), LAMPO_KEYS_FILE: path.join(dir, 'keys.json'), STRIPE_SECRET_KEY: 'sk_test_lampo', LAMPO_STRIPE_API: `http://127.0.0.1:${stripePort}`, LAMPO_PRICE_CENTS: '299' },
+    env: { ...process.env, PORT: String(port), LAMPO_TOKEN: MASTER, LAMPO_FILE_SECRET: 's'.repeat(40), LAMPO_PUBLIC_URL: base, LAMPO_OUT: path.join(dir, 'out'), LAMPO_KEYS_FILE: path.join(dir, 'keys.json'), STRIPE_SECRET_KEY: 'sk_test_lampo', LAMPO_STRIPE_API: `http://127.0.0.1:${stripePort}`, LAMPO_PRICE_CENTS: '299', ANTHROPIC_API_KEY: 'sk-ant-test', ANTHROPIC_BASE_URL: `http://127.0.0.1:${claudePort}` },
     stdio: ['ignore', 'ignore', 'pipe'],
   });
   let log = '';
@@ -56,6 +91,8 @@ const MASTER = 'm'.repeat(40);
     assert.strictEqual(health.ok, true);
     assert.strictEqual(health.payments, true);
     assert.strictEqual(health.price, '€2.99');
+    assert.deepStrictEqual(health.prices, { clean: '€2.99', lifetime: '€399.00', ai: '€8.00', ai_sub: '€25.00' });
+    assert.strictEqual(health.ai, true);
 
     // a client key with 1 credit
     const key = (await (await post('/admin/keys', { action: 'add', label: 'test', credits: 1 }, MASTER)).json()).token;
@@ -123,6 +160,63 @@ const MASTER = 'm'.repeat(40);
     const inner = await post('/api/validate', { spec: { scenes: [{ duration: 1, layers: [{ type: 'image', src: 'https://169.254.169.254/x.png' }] }] } }, key);
     assert.match((await inner.json()).error, /private address/);
 
+    const pay = (id) => { stripe.sessions.get(id).payment_status = 'paid'; stripe.sessions.get(id).status = 'complete'; };
+    const sidOf = (u) => /cs_test_\w+/.exec(u)[0];
+
+    // Lampo Key (lifetime): a signed key, clean renders, no credits
+    const lt = await (await post('/api/checkout', { kind: 'lifetime' })).json();
+    assert.strictEqual(lt.price, '€399.00');
+    assert.strictEqual(stripe.sessions.get(sidOf(lt.url)).amount, '39900');
+    assert.strictEqual((await post('/api/claim', { session_id: sidOf(lt.url) })).status, 402, 'not paid yet');
+    pay(sidOf(lt.url));
+    const life = await (await post('/api/claim', { session_id: sidOf(lt.url) })).json();
+    assert.match(life.key, /^lkl_[a-f0-9]{52}$/);
+    assert.strictEqual((await (await post('/api/claim', { session_id: sidOf(lt.url) })).json()).key, life.key, 'same key on reload');
+    const lifeRender = await (await post('/api/render', { spec }, life.key)).json();
+    assert.ok(!lifeRender.watermark && lifeRender.url, JSON.stringify(lifeRender));
+    assert.strictEqual((await post('/api/render', { spec }, life.key.slice(0, -1) + (life.key.endsWith('0') ? '1' : '0'))).status, 401, 'forged key');
+    const lifePage = await (await fetch(`${base}/paid?session_id=${sidOf(lt.url)}`)).text();
+    assert.ok(lifePage.includes(life.key) && lifePage.includes(`/mcp/${life.key}`));
+
+    // Lampo AI, one video (€8): pay first, then Claude writes the spec (repair + visual review), clean video
+    const aiCo = await (await post('/api/checkout', { kind: 'ai', brief: 'Uno spot per la pizzeria Roma', format: '1:1' })).json();
+    assert.strictEqual(aiCo.price, '€8.00');
+    pay(sidOf(aiCo.url));
+    const aiOut = await post('/api/claim', { session_id: sidOf(aiCo.url) });
+    const ai = await aiOut.json();
+    assert.strictEqual(aiOut.status, 200, JSON.stringify(ai));
+    assert.strictEqual(ai.spec.scenes[0].layers[0].in, 'rise', 'the reviewed spec is the one rendered');
+    assert.strictEqual((await fetch(ai.url)).status, 200);
+    assert.strictEqual(claude.calls.length, 3, 'write, fix, review');
+    const first = claude.calls[0];
+    assert.strictEqual(first.body.model, 'claude-opus-5-5');
+    assert.strictEqual(first.body.fallbacks, 'default');
+    assert.match(first.headers['anthropic-beta'], /server-side-fallback-2026-07-01/);
+    assert.deepStrictEqual(first.body.system[0].cache_control, { type: 'ephemeral' });
+    assert.ok(first.body.system[0].text.includes('Blueprints: proven shot shapes'), 'the skill is the system prompt');
+    assert.match(JSON.stringify(claude.calls[1].body.messages), /flyIn/, 'validation errors sent back');
+    assert.ok(claude.calls[2].body.messages.at(-1).content.some((c) => c.type === 'image'), 'review sees the preview');
+    const again = await (await post('/api/claim', { session_id: sidOf(aiCo.url) })).json();
+    assert.strictEqual(claude.calls.length, 3, 'a reload does not call Claude again');
+    assert.deepStrictEqual(again.spec, ai.spec);
+
+    // Lampo AI monthly (€25): a subscription key, valid while Stripe says active
+    const subCo = await (await post('/api/checkout', { kind: 'ai_sub' })).json();
+    const subSession = stripe.sessions.get(sidOf(subCo.url));
+    assert.strictEqual(subSession.mode, 'subscription');
+    assert.strictEqual(subSession.interval, 'month');
+    assert.strictEqual(subSession.amount, '2500');
+    pay(sidOf(subCo.url));
+    stripe.subscriptions.set(subSession.subscription, 'active');
+    const subKeyOut = await (await post('/api/claim', { session_id: sidOf(subCo.url) })).json();
+    assert.match(subKeyOut.key, /^lks_sub_test\w+_[a-f0-9]{32}$/);
+    const aiSub = await fetch(`${base}/api/ai`, { method: 'POST', headers: { 'content-type': 'text/plain', authorization: `Bearer ${subKeyOut.key}` }, body: JSON.stringify({ brief: 'Reel per un barbiere', format: '1:1' }) });
+    assert.strictEqual(aiSub.status, 200, await aiSub.clone().text());
+    assert.ok((await aiSub.json()).url);
+    assert.strictEqual((await post('/api/ai', { brief: 'x' })).status, 402, 'AI without a subscription');
+    const subRender = await (await post('/api/render', { spec }, subKeyOut.key)).json();
+    assert.ok(!subRender.watermark, 'subscribers render clean');
+
     // render: signed URL, one credit spent
     const r = await post('/api/render', { spec }, key);
     const out = await r.json();
@@ -157,6 +251,7 @@ const MASTER = 'm'.repeat(40);
   } finally {
     srv.kill();
     stripe.srv.close();
+    claude.srv.close();
   }
 
   // Hugging Face Spaces setup: public URL from SPACE_HOST, keys from the LAMPO_KEYS secret,
@@ -177,7 +272,7 @@ const MASTER = 'm'.repeat(40);
     assert.strictEqual(r.status, 200, JSON.stringify(out));
     assert.ok(out.url.startsWith('https://someone-lampo.hf.space/files/'), out.url);
     assert.strictEqual(out.creditsLeft, 1);
-    console.log('ok · cloud: keys, credits, watermark, Stripe checkout → clean video, REST, MCP key in URL, signed files, media rules, Hugging Face setup');
+    console.log('ok · cloud: keys, credits, watermark, Stripe checkout → clean video, lifetime key, AI video (write/fix/review), AI subscription, REST, MCP key in URL, signed files, media rules, Hugging Face setup');
   } finally {
     hf.kill();
     fs.rmSync(dir, { recursive: true, force: true });

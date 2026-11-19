@@ -67,7 +67,7 @@ async def forward(request: Request) -> Response:
 
 
 METHODS = ["GET", "POST", "DELETE", "OPTIONS"]
-ROUTES = [Route(p, forward, methods=METHODS) for p in ["/mcp", "/mcp/{key}", "/api/render", "/api/validate", "/api/checkout", "/api/clean", "/buy/{id}", "/paid", "/files/{name}", "/health", "/admin/keys"]]
+ROUTES = [Route(p, forward, methods=METHODS) for p in ["/mcp", "/mcp/{key}", "/api/render", "/api/validate", "/api/checkout", "/api/clean", "/api/claim", "/api/ai", "/buy/{id}", "/paid", "/files/{name}", "/health", "/admin/keys"]]
 
 with gr.Blocks(title="Lampo Cloud") as demo:
     gr.Markdown(f"""

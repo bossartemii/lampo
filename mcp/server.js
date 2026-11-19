@@ -43,7 +43,17 @@ const STRIPE_TAX_CODE = process.env.LAMPO_STRIPE_TAX_CODE || 'txcd_10103000';
 const STRIPE_MANAGED = process.env.LAMPO_STRIPE_MANAGED;
 const ANON_PER_HOUR = Number(process.env.LAMPO_ANON_PER_HOUR || 20);
 const SPECS_DIR = path.join(OUT_DIR, 'specs');
-const priceLabel = () => new Intl.NumberFormat('en', { style: 'currency', currency: CURRENCY.toUpperCase() }).format(PRICE_CENTS / 100);
+const money = (cents) => new Intl.NumberFormat('en', { style: 'currency', currency: CURRENCY.toUpperCase() }).format(cents / 100);
+const priceLabel = () => money(PRICE_CENTS);
+// what Lampo Cloud sells
+const PRODUCTS = {
+  clean: { cents: PRICE_CENTS, name: 'Lampo video without watermark' },
+  lifetime: { cents: Number(process.env.LAMPO_LIFETIME_CENTS || 39900), name: 'Lampo Key (lifetime): unlimited clean renders' },
+  ai: { cents: Number(process.env.LAMPO_AI_CENTS || 800), name: 'Lampo AI video' },
+  ai_sub: { cents: Number(process.env.LAMPO_AI_SUB_CENTS || 2500), name: 'Lampo AI (monthly): AI videos and clean renders', monthly: true },
+};
+const AI_ON = !!process.env.ANTHROPIC_API_KEY;
+const AI_SUB_PER_DAY = Number(process.env.LAMPO_AI_SUB_PER_DAY || 30);
 const BILLING_URL = process.env.LAMPO_BILLING_URL || 'https://github.com/sponsors/bossartemii';
 
 function loadKeys() {
@@ -291,8 +301,8 @@ async function callTool(name, args = {}, auth = { master: true }) {
       }
       case 'lampo_render': {
         // clean video: the master key, or a client key with credits. Everyone else gets the watermark.
-        let paid = !httpMode || auth.master;
-        if (httpMode && !auth.master && auth.token) {
+        let paid = !httpMode || auth.master || auth.lifetime || (auth.sub ? await subActive(auth.sub) : false);
+        if (httpMode && !paid && auth.token && !auth.sub && !auth.lifetime) {
           const record = loadKeys()[auth.token];
           paid = !!record && typeof record.credits === 'number' && record.credits >= 1;
         }
@@ -315,7 +325,7 @@ async function callTool(name, args = {}, auth = { master: true }) {
             r.note = 'This video has the Lampo watermark. Use a Lampo Cloud key with credits for the clean video.';
           }
         }
-        if (paid && httpMode && !auth.master) {
+        if (paid && httpMode && !auth.master && !auth.lifetime && !auth.sub) {
           const keys = loadKeys();
           const record = keys[auth.token];
           if (record) {
@@ -430,7 +440,11 @@ async function api(req, res, tool, auth) {
   return send(200, data);
 }
 
-// ---------- payments: Stripe Checkout unlocks the clean video ----------
+// ---------- payments: Stripe Checkout ----------
+// Products: "clean" (one video without watermark), "lifetime" (Lampo Key: unlimited clean renders),
+// "ai" (one video written by Lampo AI), "ai_sub" (monthly: AI videos and clean renders).
+// Every purchase is checked with Stripe before anything is delivered. Keys are signed, not stored,
+// so they survive restarts on hosts without a disk.
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 
 async function stripe(method, pathname, form) {
@@ -448,9 +462,9 @@ function safeReturn(u) {
   try { const x = new URL(u); return RETURN_ORIGINS.includes(x.origin) ? x : null; } catch { return null; }
 }
 
-// a Checkout Session for the clean version of one spec; after paying the buyer comes back to the
-// playground (if it sent a return URL) or to this server's /paid page
-async function checkout(hash, returnUrl) {
+async function checkout(kind, ref, returnUrl) {
+  const product = PRODUCTS[kind];
+  if (!product) throw httpError(400, `Unknown product "${kind}".`);
   const base = PUBLIC_URL.replace(/\/$/, '');
   const back = safeReturn(returnUrl);
   let success, cancel;
@@ -464,29 +478,75 @@ async function checkout(hash, returnUrl) {
     cancel = `${base}/paid?cancelled=1`;
   }
   const session = await stripe('POST', '/v1/checkout/sessions', {
-    mode: 'payment',
+    mode: product.monthly ? 'subscription' : 'payment',
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': CURRENCY,
-    'line_items[0][price_data][unit_amount]': String(PRICE_CENTS),
-    'line_items[0][price_data][product_data][name]': 'Lampo video without watermark',
+    'line_items[0][price_data][unit_amount]': String(product.cents),
+    'line_items[0][price_data][product_data][name]': product.name,
+    ...(product.monthly ? { 'line_items[0][price_data][recurring][interval]': 'month' } : {}),
     ...(STRIPE_TAX_CODE ? { 'line_items[0][price_data][product_data][tax_code]': STRIPE_TAX_CODE } : {}),
     ...(STRIPE_MANAGED === 'false' ? { 'managed_payments[enabled]': 'false' } : {}),
     success_url: success,
     cancel_url: cancel,
-    client_reference_id: hash,
-    'metadata[spec_hash]': hash,
+    ...(ref ? { client_reference_id: ref, 'metadata[ref]': ref, 'metadata[spec_hash]': ref } : {}),
+    'metadata[kind]': kind,
   });
   return session.url;
 }
 
-// the spec a paid Checkout Session unlocks (the payment is checked with Stripe, never trusted from the URL)
-async function paidHash(sessionId) {
+// a paid Checkout Session: { kind, ref, subscription } (never trusted from the URL: asked to Stripe)
+async function paidSession(sessionId) {
   if (!/^cs_[A-Za-z0-9_]{8,}$/.test(sessionId || '')) throw httpError(400, 'Missing or invalid session_id.');
   const session = await stripe('GET', `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`);
-  if (session.payment_status !== 'paid') throw httpError(402, 'This checkout has not been paid.');
-  const hash = session.metadata?.spec_hash;
-  if (!/^[a-f0-9]{32}$/.test(hash || '')) throw httpError(400, 'This checkout is not for a Lampo video.');
+  if (session.payment_status !== 'paid' && !(session.mode === 'subscription' && session.status === 'complete')) throw httpError(402, 'This checkout has not been paid.');
+  const kind = session.metadata?.kind || 'clean';
+  if (!PRODUCTS[kind]) throw httpError(400, 'This checkout is not for Lampo.');
+  const ref = session.metadata?.ref || session.metadata?.spec_hash || null;
+  const subscription = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id || null;
+  return { id: session.id, kind, ref, subscription };
+}
+
+// ---- signed keys: lkl_ (lifetime) and lks_ (subscription) ----
+const KEY_SECRET = crypto.createHash('sha256').update(`lampo-keys:${process.env.LAMPO_TOKEN || ''}`).digest();
+const keySig = (data) => crypto.createHmac('sha256', KEY_SECRET).update(data).digest('hex').slice(0, 32);
+const REVOKED = new Set((process.env.LAMPO_REVOKED || '').split(',').map((x) => x.trim()).filter(Boolean));
+const lifetimeKey = (sessionId) => { const id = crypto.createHash('sha256').update(sessionId).digest('hex').slice(0, 20); return `lkl_${id}${keySig(`life:${id}`)}`; };
+const subKey = (subId) => `lks_${subId}_${keySig(`sub:${subId}`)}`;
+function safeEqual(a, b) { return a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)); }
+function keyKind(token) {
+  if (!token || REVOKED.has(token)) return null;
+  let m = /^lkl_([a-f0-9]{20})([a-f0-9]{32})$/.exec(token);
+  if (m && safeEqual(m[2], keySig(`life:${m[1]}`))) return { lifetime: true };
+  m = /^lks_(sub_[A-Za-z0-9]+)_([a-f0-9]{32})$/.exec(token);
+  if (m && safeEqual(m[2], keySig(`sub:${m[1]}`))) return { sub: m[1] };
+  return null;
+}
+
+// a subscription key works while Stripe says the subscription is active (checked at most every 10 minutes)
+const subCache = new Map();
+async function subActive(subId) {
+  const c = subCache.get(subId);
+  if (c && Date.now() - c.at < 600e3) return c.ok;
+  if (!STRIPE_KEY) return false;
+  let ok = false;
+  try { const sub = await stripe('GET', `/v1/subscriptions/${encodeURIComponent(subId)}`); ok = ['active', 'trialing'].includes(sub.status); } catch { ok = false; }
+  subCache.set(subId, { ok, at: Date.now() });
+  return ok;
+}
+
+// ---- briefs for paid AI videos, and their results ----
+const BRIEFS_DIR = path.join(OUT_DIR, 'briefs');
+const AI_DIR = path.join(OUT_DIR, 'ai');
+function storeBrief(brief, format) {
+  const obj = { brief: String(brief).slice(0, 4000), format: format || null };
+  const hash = specHash(obj);
+  fs.mkdirSync(BRIEFS_DIR, { recursive: true });
+  fs.writeFileSync(path.join(BRIEFS_DIR, `${hash}.json`), JSON.stringify(obj));
   return hash;
+}
+function loadBrief(hash) {
+  if (!/^[a-f0-9]{32}$/.test(hash || '')) return null;
+  try { return JSON.parse(fs.readFileSync(path.join(BRIEFS_DIR, `${hash}.json`), 'utf8')); } catch { return null; }
 }
 
 async function renderClean(hash, obj) {
@@ -507,58 +567,144 @@ async function renderClean(hash, obj) {
   }
 }
 
+// Lampo AI: brief → spec (src/ai.js) → clean video
+const aiRuns = new Map(); // one generation per id at a time (a reload doesn't pay Claude twice)
+async function aiVideo(id, brief, format) {
+  const saved = path.join(AI_DIR, `${id}.json`);
+  let spec = null;
+  try { spec = JSON.parse(fs.readFileSync(saved, 'utf8')); } catch {}
+  if (!spec) {
+    if (!AI_ON) throw httpError(503, 'Lampo AI is not set up on this server.');
+    if (!aiRuns.has(id)) {
+      const { generate } = require('../src/ai');
+      aiRuns.set(id, generate(brief, {
+        format,
+        check: (sp) => validateCloudSpec(sp, process.cwd()),
+        preview: async (sp) => {
+          const f = path.join(os.tmpdir(), `lampo-ai-${crypto.randomUUID()}.png`);
+          await preview(toSpec(sp), f, { baseDir: process.cwd(), scale: 0.3 });
+          const png = fs.readFileSync(f);
+          fs.rmSync(f, { force: true });
+          return png;
+        },
+      }).finally(() => aiRuns.delete(id)));
+    }
+    spec = (await aiRuns.get(id)).spec;
+    await assertSafeMedia(validateCloudSpec(spec, process.cwd()));
+    fs.mkdirSync(AI_DIR, { recursive: true });
+    fs.writeFileSync(saved, JSON.stringify(spec));
+  }
+  const video = await renderClean(specHash(spec), spec);
+  return { ...video, spec };
+}
+
+// deliver what a paid Checkout Session bought
+async function claim(sessionId, body = {}) {
+  const s = await paidSession(sessionId);
+  if (s.kind === 'lifetime') return { kind: s.kind, key: lifetimeKey(s.id) };
+  if (s.kind === 'ai_sub') {
+    if (!s.subscription) throw httpError(400, 'This checkout has no subscription.');
+    return { kind: s.kind, key: subKey(s.subscription) };
+  }
+  if (s.kind === 'ai') {
+    let b = loadBrief(s.ref);
+    if (!b && body.brief && specHash({ brief: String(body.brief).slice(0, 4000), format: body.format || null }) === s.ref) b = { brief: body.brief, format: body.format || null };
+    if (!b) throw httpError(410, 'The brief of this payment is no longer on the server. Send it again with the request.');
+    return { kind: s.kind, ...(await aiVideo(`session-${crypto.createHash('sha256').update(s.id).digest('hex').slice(0, 24)}`, b.brief, b.format)) };
+  }
+  let obj = loadSpec(s.ref);
+  if (!obj && body.spec && specHash(specObject(body.spec)) === s.ref) obj = specObject(body.spec);
+  if (!obj) throw httpError(410, 'The spec of this payment is no longer on the server. Send it again with the request.');
+  return { kind: s.kind, ...(await renderClean(s.ref, obj)) };
+}
+
+// fair use for subscription keys: AI videos per day per key (in memory)
+const aiDaily = new Map();
+function aiAllowed(token) {
+  const day = new Date().toISOString().slice(0, 10);
+  const c = aiDaily.get(token);
+  const n = c && c.day === day ? c.n : 0;
+  if (n >= AI_SUB_PER_DAY) return false;
+  aiDaily.set(token, { day, n: n + 1 });
+  return true;
+}
+
 function page(title, body) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
 <style>body{margin:0;background:#eef0f3;color:#000;font:16px/1.5 system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px;box-sizing:border-box}
-main{background:#fff;border:1.5px solid #000;border-radius:16px;padding:24px;max-width:420px;width:100%}h1{font-size:24px;margin:0 0 8px}p{color:#4a4f5a;margin:0 0 14px}
-video{width:100%;border-radius:12px;background:#000;margin:8px 0 14px}a.b{display:inline-block;background:#ffe14d;color:#000;border:1.5px solid #000;border-radius:999px;padding:10px 18px;font-weight:700;text-decoration:none}</style>
+main{background:#fff;border:1.5px solid #000;border-radius:16px;padding:24px;max-width:460px;width:100%}h1{font-size:24px;margin:0 0 8px}p{color:#4a4f5a;margin:0 0 14px}
+video{width:100%;border-radius:12px;background:#000;margin:8px 0 14px}a.b{display:inline-block;background:#ffe14d;color:#000;border:1.5px solid #000;border-radius:999px;padding:10px 18px;font-weight:700;text-decoration:none}
+code{display:block;background:#f4f4f6;border:1px solid #d6d8de;border-radius:8px;padding:10px;font:14px ui-monospace,monospace;overflow-wrap:anywhere;margin:0 0 14px}</style>
 </head><body><main>${body}</main></body></html>`;
 }
 const esc = (x) => String(x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+function keyPage(kind, key) {
+  const what = kind === 'lifetime' ? 'unlimited clean renders, for life' : 'AI videos and clean renders while your subscription is active';
+  const base = PUBLIC_URL.replace(/\/$/, '');
+  return `<h1>⚡ Your Lampo key</h1><p>${what}. Keep it private: whoever has it can use it. This page shows it again if you open it from the same link.</p>
+<code>${esc(key)}</code><p>Claude.ai or ChatGPT connector URL:</p><code>${esc(`${base}/mcp/${key}`)}</code>
+<p>Claude Code, Cursor, Codex: <b>${esc(`${base}/mcp`)}</b> with the header <b>Authorization: Bearer &lt;key&gt;</b>. In the playground: paste it in "Have a Lampo key?".</p>`;
+}
 
 async function payments(req, res, url) {
   const json = (status, obj) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
   const html = (status, title, body) => { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8' }); res.end(page(title, body)); };
   const enabled = !!(STRIPE_KEY && PUBLIC_URL);
   try {
-    // POST /api/checkout { spec, return } → { url, price }: the playground's "Download without watermark"
+    // POST /api/checkout { kind, spec | brief, format, return } → { url, price }
     if (url.pathname === '/api/checkout') {
       if (req.method !== 'POST') return json(405, { error: 'Use POST' });
       if (!enabled) return json(503, { error: 'Payments are not set up on this server.' });
       const body = await readJson(req);
-      if (!body.spec) return json(400, { error: 'Missing "spec".' });
-      const obj = specObject(body.spec);
-      const s = validateCloudSpec(obj, process.cwd());
-      await assertSafeMedia(s);
-      const hash = storeSpec(obj);
-      return json(200, { url: await checkout(hash, body.return), price: priceLabel(), id: hash });
+      const kind = body.kind || 'clean';
+      let ref = null;
+      if (kind === 'clean') {
+        if (!body.spec) return json(400, { error: 'Missing "spec".' });
+        const obj = specObject(body.spec);
+        await assertSafeMedia(validateCloudSpec(obj, process.cwd()));
+        ref = storeSpec(obj);
+      } else if (kind === 'ai') {
+        if (!AI_ON) return json(503, { error: 'Lampo AI is not set up on this server.' });
+        if (!String(body.brief || '').trim()) return json(400, { error: 'Describe the video you want.' });
+        ref = storeBrief(body.brief, body.format);
+      } else if (kind === 'ai_sub' && !AI_ON) return json(503, { error: 'Lampo AI is not set up on this server.' });
+      if (!PRODUCTS[kind]) return json(400, { error: `Unknown product "${kind}".` });
+      return json(200, { url: await checkout(kind, ref, body.return), price: money(PRODUCTS[kind].cents), id: ref });
     }
-    // POST /api/clean { session_id, spec } → { url }: the clean video after paying
-    if (url.pathname === '/api/clean') {
+    // POST /api/claim { session_id, spec?, brief?, format? } → what was bought (video, key, AI video)
+    if (url.pathname === '/api/claim' || url.pathname === '/api/clean') {
       if (req.method !== 'POST') return json(405, { error: 'Use POST' });
       if (!enabled) return json(503, { error: 'Payments are not set up on this server.' });
       const body = await readJson(req);
-      const hash = await paidHash(body.session_id);
-      let obj = loadSpec(hash);
-      if (!obj && body.spec && specHash(specObject(body.spec)) === hash) obj = specObject(body.spec);
-      if (!obj) return json(410, { error: 'The spec of this payment is no longer on the server. Send it again with the request.' });
-      return json(200, await renderClean(hash, obj));
+      return json(200, await claim(body.session_id, body));
+    }
+    // POST /api/ai { brief, format } with a subscription key (or the master key) → { spec, url }
+    if (url.pathname === '/api/ai') {
+      if (req.method !== 'POST') return json(405, { error: 'Use POST' });
+      if (!AI_ON) return json(503, { error: 'Lampo AI is not set up on this server.' });
+      const body = await readJson(req);
+      const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim() || url.searchParams.get('key') || '';
+      const master = token && token === process.env.LAMPO_TOKEN;
+      const k = keyKind(token);
+      if (!master && !(k && k.sub && (await subActive(k.sub)))) return json(402, { error: `Lampo AI needs a subscription key (${money(PRODUCTS.ai_sub.cents)}/month) or a one-video payment (${money(PRODUCTS.ai.cents)}).`, price: money(PRODUCTS.ai.cents), monthly: money(PRODUCTS.ai_sub.cents) });
+      if (!master && !aiAllowed(token)) return json(429, { error: `Fair use: ${AI_SUB_PER_DAY} AI videos per day per subscription. Try again tomorrow.` });
+      if (!String(body.brief || '').trim()) return json(400, { error: 'Describe the video you want.' });
+      return json(200, await aiVideo(`run-${crypto.randomUUID()}`, String(body.brief).slice(0, 4000), body.format || null));
     }
     // GET /buy/<id>: the link given to agents (ChatGPT, Claude) with a watermarked video
     if (url.pathname.startsWith('/buy/')) {
       if (!enabled) return html(503, 'Lampo', '<h1>Payments are not set up</h1><p>This Lampo Cloud server does not sell clean videos.</p>');
       const hash = url.pathname.slice(5);
       if (!loadSpec(hash)) return html(404, 'Lampo', '<h1>Video not found</h1><p>This link expired. Render the video again to get a new one.</p>');
-      res.writeHead(303, { location: await checkout(hash, url.searchParams.get('return')) });
+      res.writeHead(303, { location: await checkout('clean', hash, url.searchParams.get('return')) });
       return res.end();
     }
-    // GET /paid?session_id=… : back from Stripe, render the clean video and offer the download
+    // GET /paid?session_id=… : back from Stripe when there is no playground to return to
     if (url.pathname === '/paid') {
-      if (url.searchParams.get('cancelled')) return html(200, 'Lampo', '<h1>Payment cancelled</h1><p>Nothing was charged. The watermarked video is still yours.</p>');
-      const hash = await paidHash(url.searchParams.get('session_id'));
-      const obj = loadSpec(hash);
-      if (!obj) return html(410, 'Lampo', '<h1>Paid, but the video expired</h1><p>The spec is no longer on the server. Reply to the Stripe receipt and we will send the video.</p>');
-      const r = await renderClean(hash, obj);
+      if (url.searchParams.get('cancelled')) return html(200, 'Lampo', '<h1>Payment cancelled</h1><p>Nothing was charged.</p>');
+      const r = await claim(url.searchParams.get('session_id'));
+      if (r.key) return html(200, 'Your Lampo key', keyPage(r.kind, r.key));
       return html(200, 'Your Lampo video', `<h1>⚡ Your video, without watermark</h1><p>Thanks! The download link works for 15 minutes; reload this page for a new one.</p><video src="${esc(r.url)}" controls playsinline></video><a class="b" href="${esc(r.url)}" download>Download MP4</a>`);
     }
   } catch (e) {
@@ -654,8 +800,8 @@ function startHttp(port) {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify(keys, null, 2));
     }
-    if (url.pathname === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, version: VERSION, busy: cloudBusy, payments: !!(STRIPE_KEY && PUBLIC_URL), price: STRIPE_KEY ? priceLabel() : null })); }
-    if (['/api/checkout', '/api/clean', '/paid'].includes(url.pathname) || url.pathname.startsWith('/buy/')) return payments(req, res, url);
+    if (url.pathname === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, version: VERSION, busy: cloudBusy, payments: !!(STRIPE_KEY && PUBLIC_URL), price: STRIPE_KEY ? priceLabel() : null, ai: AI_ON, prices: STRIPE_KEY ? Object.fromEntries(Object.entries(PRODUCTS).map(([k, v]) => [k, money(v.cents)])) : null })); }
+    if (['/api/checkout', '/api/clean', '/api/claim', '/api/ai', '/paid'].includes(url.pathname) || url.pathname.startsWith('/buy/')) return payments(req, res, url);
     // ChatGPT and Claude.ai connectors can't send headers: the key can also be the last part of the URL, /mcp/<key>
     const pathKey = /^\/mcp\/(lk_[a-f0-9]{48}|[A-Za-z0-9_-]{32,})$/.exec(url.pathname)?.[1] || '';
     const isApi = url.pathname === '/api/render' || url.pathname === '/api/validate';
@@ -666,12 +812,13 @@ function startHttp(port) {
     const suppliedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : pathKey || queryKey;
     const isMaster = suppliedToken === token;
     const clientKeys = !isMaster && suppliedToken ? loadKeys() : {};
+    const signed = !isMaster && !clientKeys[suppliedToken] ? keyKind(suppliedToken) : null;
     // no key at all: free, anonymous use with the watermark; a wrong key is an error (so typos show up)
-    if (suppliedToken && !isMaster && !clientKeys[suppliedToken]) {
+    if (suppliedToken && !isMaster && !clientKeys[suppliedToken] && !signed) {
       res.writeHead(401); return res.end('unauthorized');
     }
     const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
-    const auth = { master: isMaster, token: suppliedToken, anon: !suppliedToken, ip };
+    const auth = { master: isMaster, token: suppliedToken, anon: !suppliedToken, ip, lifetime: !!signed?.lifetime, sub: signed?.sub || null };
     if (isApi) return api(req, res, url.pathname === '/api/render' ? 'lampo_render' : 'lampo_validate', auth);
     if (req.method === 'GET') { res.writeHead(405); return res.end(); } // no server-initiated stream
     if (req.method === 'DELETE') { res.writeHead(200); return res.end(); }

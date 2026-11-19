@@ -107,6 +107,24 @@ Setup, as secrets on the server (on Hugging Face: Settings → Variables and sec
 `/health` says whether payments are on (`"payments": true, "price": "€2.99"`); the playground shows the pay button only then.
 No webhook is needed. The local CLI and MCP (open source) never add a watermark.
 
+## Products: Lampo Key, Lampo AI
+
+Besides the clean video, Lampo Cloud sells three things, all through Stripe Checkout and the same `/api/checkout` → `/api/claim` flow:
+
+| Product | Default price | What the buyer gets |
+|---|---|---|
+| **Lampo Key (lifetime)** | €399 once (`LAMPO_LIFETIME_CENTS`) | a key `lkl_…`: unlimited clean renders, forever (playground, ChatGPT, Claude, API) |
+| **Lampo AI video** | €8 per video (`LAMPO_AI_CENTS`) | describe the video in words; Lampo AI writes the spec with the Lampo skill, fixes validation errors, reviews a preview, and renders it clean. The spec comes back too, to edit |
+| **Lampo AI monthly** | €25/month (`LAMPO_AI_SUB_CENTS`) | a key `lks_…`: AI videos (fair use `LAMPO_AI_SUB_PER_DAY`, default 30/day) and clean renders while the subscription is active |
+
+Keys are signed with a secret derived from `LAMPO_TOKEN`, not stored: they survive restarts on hosts without a disk (Hugging Face).
+Keep `LAMPO_TOKEN` stable, or every key stops working. A subscription key is checked with Stripe (at most every 10 minutes),
+so it stops when the subscription ends. To revoke a lifetime key (a refund), add it to `LAMPO_REVOKED` (comma-separated).
+
+**Lampo AI** needs `ANTHROPIC_API_KEY` (a Claude API key) as a secret. It uses `claude-opus-5-5` (`LAMPO_AI_MODEL` to change it) with the
+Lampo skill as a cached system prompt: a video costs well under €1 in API usage. `/health` reports `"ai": true` when it is on; the
+playground then shows "Create with AI". `POST /api/ai { brief, format }` with a subscription key does the same from an app.
+
 ## 2. Create keys
 
 On a host with a disk (Fly.io, Render, a VPS) keys are created and topped up live; on Hugging Face put them in the `LAMPO_KEYS` secret.

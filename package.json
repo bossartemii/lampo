@@ -4,6 +4,7 @@
   "description": "Motion graphics from JSON, built for AI agents. Skia engine, no browser, parallel rendering. MCP server + skill for Claude, Gemini and ChatGPT.",
   "main": "index.js",
   "bin": {
+    "lampo-video": "cli/lampo.js",
     "lampo": "cli/lampo.js",
     "lampo-mcp": "mcp/launch.js"
   },

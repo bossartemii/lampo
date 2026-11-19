@@ -145,6 +145,12 @@ const MASTER = 'm'.repeat(40);
     assert.strictEqual(q.status, 200);
     assert.strictEqual(q.headers.get('access-control-allow-origin'), '*');
 
+    // preview over REST: a PNG keyframe sheet (watermarked without a key)
+    const pv = await post('/api/preview', { spec, times: [0.5] });
+    assert.strictEqual(pv.status, 200);
+    assert.strictEqual(pv.headers.get('content-type'), 'image/png');
+    assert.strictEqual(Buffer.from(await pv.arrayBuffer()).subarray(1, 4).toString(), 'PNG');
+
     const v = await post('/api/validate', { spec }, key);
     assert.strictEqual(v.status, 200);
     assert.strictEqual((await v.json()).ok, true);

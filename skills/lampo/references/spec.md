@@ -11,6 +11,8 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
   "quality": "standard",       // draft (half res, fastest) | standard | high
   "theme": { "font": "Inter", "color": "#fff", "accent": "#0A84FF", "background": "#000", "locale": "en-US" },
   "vignette": true,            // optional dark edges, cinematic
+  "motionBlur": true,          // real motion blur: sub-frames averaged over the shutter (or { "samples": 6, "shutter": 0.5 })
+  "look": { "grain": 0.06, "lightLeak": true, "letterbox": true },   // film look over the whole video (see Cinematic layer)
   "audio": "music.mp3",        // optional; or { "src", "volume", "start", "fadeIn", "fadeOut" }
   "sfx": true,                 // automatic sound effects synced to the animations (or { "auto": true, "volume": 0.8 })
   "sounds": [{ "sound": "riser", "at": 1.2 }],   // optional manual sounds, absolute seconds
@@ -32,6 +34,8 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
   - `{ "type": "image", "src": "photo.jpg", "overlay": "rgba(0,0,0,.45)", "kenburns": true }`
   - `{ "type": "video", "src": "broll.mp4", "overlay": "rgba(0,0,0,.35)", "trim": 2, "rate": 1, "loop": true, "audio": false }` — b-roll filling the frame (cover crop), text goes on top
 
+- `camera` (scene): a virtual camera moving the whole scene, see Cinematic layer. `backgroundDepth` (default 0.35) sets how much the background follows it.
+
 ## Layer (common keys)
 - `type`: text | counter | rect | circle | line | image | video | path | icon | spinner | group | phone | cursor (inferred from `text` / `src` / `shape` / `path` / `layers` if omitted)
 - `x`, `y`: px in design space, `"50%"`, or `"center" | "left" | "right" | "top" | "bottom"`. Default: center.
@@ -41,6 +45,7 @@ Write the spec, call `preview` once to look at it, fix, then `render`.
 - `out`: exit effect, same names, played in reverse at the end of the layer
 - `loop`: `"float"` or `{ "effect": "pulse", "amount": 0.04, "period": 1.2 }` or an array
 - `opacity`, `scale`, `rotate`, `shadow: true`, `glow: "rgba(255,160,0,.6)"`
+- `depth` (0–3, default 1): how much the scene camera moves this layer. Parallax: 0.3 far background, 1 normal, 1.5+ foreground
 - `keyframes` also morph shapes: `w`, `h`, `r` (circle), `radius`, `color`, `size` (text), `blur`, `rgb` (chromatic split), `skew` (degrees). One rect can go dot → line → pill → app icon → full screen: `[{t:0,w:44,h:44,radius:22},{t:0.25,w:330,h:7,radius:4},{t:0.6,w:360,h:104,radius:10},{t:1.2,w:158,h:158,radius:40},{t:1.6,w:560,h:1000,color:"#9c9c9c"}]`. A circle whose `r` grows to ~1300 fills the screen (color takeover).
 - `keyframes`: move/zoom over time, e.g. `[{ "t": 2, "y": "60%", "scale": 1 }, { "t": 2.8, "y": "52%", "scale": 1.15 }]` (t = seconds from the layer start; props x, y, scale, rotate, opacity; optional `easing`). A quick press: `[{t:1.9,scale:1},{t:2,scale:0.93},{t:2.15,scale:1}]`.
 
@@ -84,11 +89,20 @@ A loading spinner: `size`, `color`, `track` (ring color or false), `speed`. Put 
 - line: `w`, `h` (thickness), `color` — use `in: "grow"` for an underline that draws itself
 - image: `src` (local path or URL), `w`, `h`, `fit` (cover|contain), `radius`
 
+### particles
+`{ "type": "particles", "preset": "sparks" }` — deterministic particles over the frame (or a box: `w`, `h`, `x`, `y`). Presets: sparks, embers (rising glows), confetti, snow, dust (floating specks), bokeh (big soft out-of-focus lights), stars (twinkle), bubbles, burst (confetti explosion from the layer's position at its `start`), sparkBurst (radial light streaks, 0.9 s). Options: `count`, `colors` (array) or `color`, `size`, `speed` (1 = normal), `seed`, plus `start`/`end`, `depth`, `opacity`, `in`/`out` like any layer.
+
+## Cinematic layer
+- **Camera** (per scene): `"camera": "pushIn"`, or `{ "move": "pushIn", "amount": 0.15, "start": 0.5, "duration": 2, "easing": "inOut" }`, or an array to combine (`["pushIn", "handheld"]`). Moves: pushIn, pullOut (amount = zoom, default 0.12), panLeft, panRight (fraction of the width, 0.1), tiltUp, tiltDown (0.08), orbit (degrees of roll + gentle zoom, 3), dutch (roll that builds, 4°), drift (slow float), handheld (organic shake, amount 1), crashZoom (a snap zoom at `start`, 0.35), shake (impact shake at `start`, decays in 0.6 s). Global `layers` (logos, captions) don't move.
+- **Parallax**: give layers different `depth` under a moving camera: ghost type 0.3, background particles 0.5, copy 1, hero 1.3–1.6, foreground particles 1.8. Three planes read as real space.
+- **Motion blur**: `"motionBlur": true` at top level. Fast moves (whip, rush, crashZoom, confetti) get real streaks. Costs ~6× render time; use it for delivery, leave it off for quick previews if you iterate a lot.
+- **Look**: `"look": { "grain": 0.06, "lightLeak": true, "letterbox": true }`. grain 0.03–0.08 (film texture); lightLeak `true` or `{ "colors": [...], "intensity": 0.32, "speed": 0.35 }` (warm moving light, screen blend); letterbox `true` (2.39:1 bars on 16:9, slim bars on vertical) or a fraction of the height, `letterboxColor`.
+
 ## Effects
 Entrance/exit (any layer): fade, fadeUp, fadeDown, slideLeft, slideRight, slideUp (from below the frame), scaleIn, popIn, zoomOut, blurIn, drop, spin, wipe, wipeUp, grow, growUp, stamp (slams down tilted, like a rubber stamp), draw (paths draw their stroke), glitch (red/cyan chromatic split that jitters and settles), rush (flies in from the right with speed blur — vans, cars, products), slideDown (from above the frame), growLeft, growDown, wipeLeft, wipeDown, unfold (opens from the center line), iris (circular reveal — photos, logos), flip / flipUp (card flip), elastic (springy pop with wobble), swing (hangs from the top edge and swings in), skewIn (slides in leaning, then straightens — sporty), flicker (switches on like a neon sign), focus (comes into focus from a big blur)
 Text only (animate per unit): rise (lines slide up from a mask — keynote style), wordsRise (same, word by word), wordsUp, wordsPop, wordsSlide, wordsFlip, letters, lettersBlur (letters sharpen into place), cascade (letters fall in with a tilt), typewriter
-Loops: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing (pendulum from the top edge), bounce, orbit, heartbeat (double beat), flicker (neon), glitch (periodic RGB bursts on text). Options: `amount`, `period` (`speed` for rotate/flicker)
-Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, or a cubic-bezier array [x1,y1,x2,y2]
+Loops: float, pulse, rotate, kenburns, drift, shake, breathe, wiggle, swing (pendulum from the top edge), bounce, orbit, heartbeat (double beat), flicker (neon), glitch (periodic RGB bursts on text), shine (a light band sweeps over text and its pill: CTAs, logos, prices; `period`, `duration`). Options: `amount`, `period` (`speed` for rotate/flicker)
+Easings: apple (default), linear, in, out, inOut, expoOut, backOut, elasticOut, bounceOut, spring (physical overshoot and settle), or a cubic-bezier array [x1,y1,x2,y2]
 
 ## Sound effects
 Synthesized by Lampo (no audio files, no licensing). 42 sounds:

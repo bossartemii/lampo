@@ -11,6 +11,7 @@ const TOPICS = {
   styles: path.join(REF, 'visual-styles.md'),
   blueprints: path.join(REF, 'blueprints.md'),
   motion: path.join(REF, 'motion-principles.md'),
+  pro: path.join(REF, 'pro-motion.md'),
   review: path.join(REF, 'review.md'),
 };
 
@@ -19,6 +20,7 @@ const INDEX = `## More guides (lampo_guide topic / lampo guide <topic>)
 - styles: 9 named visual styles (palette, type, motion, transitions) with runnable samples
 - blueprints: 16 time-coded shot templates with JSON (kinetic slam, morph lockup, app demo, camera pan…)
 - motion: easing, speed, choreography, continuity, composition and sound rules
+- pro: cinematography: camera language, parallax depth, animation principles, the finish pass, cinematic recipes
 - review: proof frames, checklist, common defects → fixes
 Flow: intent → route → style + one blueprint per scene → spec → preview with proof times → fix → render.`;
 

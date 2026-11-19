@@ -105,7 +105,7 @@ const specProp = {
 const TOOLS = [
   {
     name: 'lampo_guide',
-    description: 'Read this first. Without topic: the full Lampo spec reference (formats, layers, effects, transitions, sound). Topics for directing a great video: routes (video types), styles (visual styles), blueprints (ready shot templates with JSON), motion (motion-design rules), review (checklist and fixes), all.',
+    description: 'Read this first. Without topic: the full Lampo spec reference (formats, layers, effects, transitions, sound). Topics for directing a great video: routes (video types), styles (visual styles), blueprints (ready shot templates with JSON), motion (motion-design rules), pro (cinematography: camera, depth, finish, cinematic recipes), review (checklist and fixes), all.',
     inputSchema: { type: 'object', properties: { topic: { type: 'string', enum: TOPICS, description: 'Default: spec' } } },
     annotations: { readOnlyHint: true },
   },
@@ -430,8 +430,11 @@ async function api(req, res, tool, auth) {
   let body;
   try { body = await readJson(req); } catch (e) { return send(e.status || 400, { error: e.message }); }
   if (!body.spec) return send(400, { error: 'Missing "spec".' });
-  if (tool === 'lampo_render' && cloudBusy) return send(429, { error: 'Lampo Cloud is busy with another render. Try again in a few seconds.' });
-  const out = await callTool(tool, { spec: body.spec, quality: body.quality }, auth);
+  if ((tool === 'lampo_render' || tool === 'lampo_preview') && cloudBusy) return send(429, { error: 'Lampo Cloud is busy with another render. Try again in a few seconds.' });
+  const out = await callTool(tool, { spec: body.spec, quality: body.quality, times: body.times, inline: body.inline }, auth);
+  // preview: the keyframe sheet as a PNG (agents without MCP look at it before rendering)
+  const img = out.content?.find((c) => c.type === 'image');
+  if (img && !out.isError) { res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store' }); return res.end(Buffer.from(img.data, 'base64')); }
   const msg = out.content?.[0]?.text || '';
   if (out.isError) return send(/Crediti esauriti|credits/i.test(msg) ? 402 : /occupato|busy/i.test(msg) ? 429 : 400, { error: msg.replace(/\n\nCall lampo_guide for the reference\.$/, '') });
   let data;
@@ -804,8 +807,9 @@ function startHttp(port) {
     if (['/api/checkout', '/api/clean', '/api/claim', '/api/ai', '/paid'].includes(url.pathname) || url.pathname.startsWith('/buy/')) return payments(req, res, url);
     // ChatGPT and Claude.ai connectors can't send headers: the key can also be the last part of the URL, /mcp/<key>
     const pathKey = /^\/mcp\/(lk_[a-f0-9]{48}|[A-Za-z0-9_-]{32,})$/.exec(url.pathname)?.[1] || '';
-    const isApi = url.pathname === '/api/render' || url.pathname === '/api/validate';
-    if (url.pathname !== '/mcp' && !pathKey && !isApi) { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo Cloud. MCP endpoint: POST /mcp (Authorization: Bearer <key>, or no key for watermarked videos) or /mcp/<key>. REST: POST /api/render, /api/validate, /api/checkout, /api/clean.'); }
+    const API_TOOLS = { '/api/render': 'lampo_render', '/api/validate': 'lampo_validate', '/api/preview': 'lampo_preview' };
+    const isApi = !!API_TOOLS[url.pathname];
+    if (url.pathname !== '/mcp' && !pathKey && !isApi) { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('Lampo Cloud. MCP endpoint: POST /mcp (Authorization: Bearer <key>, or no key for watermarked videos) or /mcp/<key>. REST: POST /api/validate, /api/preview (PNG), /api/render, /api/checkout, /api/claim, /api/ai.'); }
     const authHeader = req.headers.authorization || '';
     // the REST API also takes ?key=, so a browser can call it with a simple request (no CORS preflight)
     const queryKey = isApi ? (url.searchParams.get('key') || '') : '';
@@ -819,7 +823,7 @@ function startHttp(port) {
     }
     const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
     const auth = { master: isMaster, token: suppliedToken, anon: !suppliedToken, ip, lifetime: !!signed?.lifetime, sub: signed?.sub || null };
-    if (isApi) return api(req, res, url.pathname === '/api/render' ? 'lampo_render' : 'lampo_validate', auth);
+    if (isApi) return api(req, res, API_TOOLS[url.pathname], auth);
     if (req.method === 'GET') { res.writeHead(405); return res.end(); } // no server-initiated stream
     if (req.method === 'DELETE') { res.writeHead(200); return res.end(); }
     const maxBodyBytes = 1024 * 1024;

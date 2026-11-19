@@ -19,6 +19,8 @@ its transitions and its sound, so a video reads as one designed system instead o
 | Mono Motion | minimal, graphic, clever | startups, apps, personal brands | morphing `rect`, circle takeover, `glitch`, `rush` | morph continuity, hard cut |
 | Street Warm | tasty, local, human | restaurants, barbers, shops, gyms | photo `kenburns`, `wordsRise`, price `stamp` | `slide`, `whip`, `push` |
 
+Camera, particles and film look per style: see the grading table in `pro-motion.md` §6.
+
 Mood → style quick map: *trust* → Swiss Pulse · *desire* → Velvet Luxury · *excitement* → Bold Poster / Neon Night ·
 *innovation* → Keynote Glow / Data Drift · *warmth* → Soft Pastel / Street Warm · *cleverness* → Mono Motion.
 

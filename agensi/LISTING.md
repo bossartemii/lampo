@@ -1,9 +1,10 @@
 # Lampo on Agensi: listing kit
 
-> **Come pubblicarlo (per Dimitri):** su agensi.io crea l'account → Dashboard → Settings → attiva *Creator Mode* →
-> Creator Dashboard → nuova skill → carica `lampo-motion-designer.zip` (questa cartella) → copia i campi qui sotto →
-> immagini da `media/` → prezzo → invia per la revisione. Per i pagamenti collega Stripe Connect.
-> Rigenera lo zip dopo ogni modifica allo skill: `node scripts/build-agensi.js`.
+> **Come pubblicarlo (per Dimitri):**
+> 1. `node private/packs/build.js && node scripts/build-agensi.js` → `agensi/lampo-motion-designer.zip` (non è nel repo pubblico: contiene i pack a pagamento).
+> 2. agensi.io → Settings → *Creator Mode* → collega **Stripe Connect** (prima del caricamento, altrimenti non incassi).
+> 3. Creator Dashboard → nuova skill → carica lo zip → copia i campi qui sotto → immagini da `agensi/` → prezzo → invia per la revisione.
+> 4. Prima di pubblicare: Space HF su hardware sempre acceso (o accetta che il fallback cloud abbia 20–90 s di risveglio).
 
 ---
 
@@ -11,58 +12,98 @@
 Lampo — Motion Designer for AI Agents
 
 ## Tagline (one line)
-Your agent directs cinematic motion graphics: camera moves, parallax depth, motion blur, particles and sound, rendered to MP4 in seconds.
+Your agent directs and renders cinematic ads, reels and logo stings to MP4: 12 industry packs, camera, depth, motion blur and sound.
 
 ## Category / tags
 Category: Video & Motion / Marketing & Content
-Tags: video, motion graphics, ads, reels, tiktok, social media, kinetic typography, logo animation, product launch, marketing, mp4, after effects alternative
+Tags: video, motion graphics, product video, ads, reels, tiktok, higgsfield, remotion alternative, after effects alternative, kinetic typography, logo animation, social media, marketing, mp4
 
 ## Price
-Suggested: **$12** (impulse range; the skill also leads buyers to Lampo Cloud renders, keys and AI videos).
+**$7.99**. Launch deal: **$5.99 for the first 72 hours**. Raise to **$12** after 25 reviews.
 
 ## Short description
-Ask your agent for "a 15-second reel for my pizzeria" and it works like a senior motion designer: it picks the video type, a visual style and a proven shot for every scene, plans the camera and depth, writes the Lampo spec, looks at a preview, fixes what's off, and renders a finished MP4 with sound. No After Effects, no browser, no templates to fill.
+Ask your agent for "a 15-second reel for my coffee shop" and it works like a senior motion designer: it starts from a finished industry pack, plans every shot with camera and depth, writes the Lampo spec, reviews a contact sheet, fixes what's off and renders an MP4 with sound. No After Effects, no browser, no template editor.
 
-## Long description
-Lampo is an open-source motion engine built for AI agents. This skill is the director that drives it.
+## What you're paying for
+The Lampo engine is free and open source (Apache-2.0). **This package is the paid direction layer: packs, recipes, review gate. You are buying the director, not the renderer.**
 
-**What your agent learns**
-- **8 video routes**: social ad, product launch, app walkthrough, explainer, beat-synced promo, brand sting, motion graphic, footage promo, each with length, scenes and copy structure.
-- **9 visual styles**: Keynote Glow, Swiss Pulse, Bold Poster, Neon Night, Velvet Luxury, Soft Pastel, Data Drift, Mono Motion, Street Warm: palette, type, motion and grade that belong together.
-- **16 shot blueprints** with ready JSON: kinetic slam, morph lockup, ticker takeover, stat hit, grid assemble, app demo with a tapping finger, camera pan, CTA press, beat-cut montage, and more.
-- **Cinematography**: a virtual camera (push-in, pull-out, pans, tilts, orbit, dutch, handheld, crash zoom, impact shake), three-plane parallax depth, real motion blur, particles (sparks, embers, confetti, bokeh, dust, bursts), and a film look (grain, light leaks, letterbox).
-- **The craft**: the 12 animation principles applied, typography like a title designer, timing on the beat, a finish pass, and 5 cinematic recipes (cinematic title, product orbit, energy drop, luxury reveal, neon handheld).
-- **A review loop**: the agent looks at keyframes before rendering and fixes cut text, overlaps, empty frames and repetitive motion.
-- **Sound design**: 42 synthesized sound effects placed on the motion automatically.
-
-**How it renders**, from any agent:
-1. Lampo MCP tools (Claude Code plugin, Gemini CLI, Claude Desktop, Cursor…), or
-2. the CLI straight from GitHub: `npx -y github:bossartemii/lampo render spec.json` (Node 18+, ffmpeg bundled), or
-3. the Lampo Cloud HTTP API (any agent that can make an HTTP request): free with a watermark, clean videos with a key or a one-time payment.
-
-**Output**: MP4 (H.264) in 9:16, 1:1, 4:5 or 16:9, up to 120 fps, with sound. A 15-second 1080×1920 ad renders in seconds.
-
-## What's included
-- `SKILL.md`: the director workflow (intent → route → style → shot plan with camera and depth → spec → visual review → finish → render)
-- `references/`: spec reference, routes, styles, blueprints (JSON), motion principles, pro cinematography with recipes (JSON), review checklist
+- **12 industry packs, 36 finished videos**: restaurant, gym, real estate, SaaS, café, barber, e-commerce, clinic, hotel, car dealer, creative agency, event. Each pack has a 15 s ad, a 5 s offer hit and a 4 s brand sting, already reviewed frame by frame, plus the copy structure (what each scene must say) and the brand slots to swap. Not in the open-source repo.
+- **The director workflow**: intent → route → style → shot plan (blueprint, camera move, depth plane per scene) → spec → visual review → finish pass → render.
+- **Cinematography recipes**: camera language (push-in, orbit, crash zoom, handheld…), three-plane parallax, motion blur, particles, film look, grading by style, 5 cinematic recipes.
+- **The review gate**: the agent must look at a contact sheet before rendering and fix cut text, overlaps, empty frames and repeated motion. It never describes a video it didn't render.
+- **A deterministic render preflight** (`scripts/preflight.sh`): MCP → local CLI → Lampo Cloud, in that order, with fixed time limits.
 
 ## Requirements
-One of: the Lampo MCP server, Node 18+ with a shell (for `npx`), or HTTP access to Lampo Cloud. No API key needed to start (cloud renders without a key carry a watermark).
+- **Primary: Node 18+ and a shell.** The first render downloads the engine with `npx` (measured: 16 s cold on a clean machine, then a 15 s 1080×1920 ad renders in ~25 s). ffmpeg is bundled.
+- **Or** the Lampo MCP server (Claude Code plugin, Claude Desktop, Cursor, Gemini CLI).
+- **Fallback: Lampo Cloud** over HTTP for agents without a shell. Free renders carry a watermark; clean videos with a key or a one-time payment. The cloud can take 20–90 s to wake up.
+- No API key needed to start.
 
-## Example prompts
-- "Make a 15-second vertical ad for my coffee shop, North Bean, 20% off this week."
-- "Animate our logo LAMPO as a 4-second premium sting, black and gold."
-- "A cinematic 16:9 launch trailer for our app, three features, end on the App Store link."
-- "Turn these three numbers into an animated stat reel for LinkedIn."
+## Permissions
+| Permission | Why |
+|---|---|
+| Terminal / shell | runs `scripts/preflight.sh` and `npx … render` |
+| Read / write files | writes `spec.json`, preview PNGs and the final `.mp4` in your project |
+| Network: npm registry + GitHub | first run only, to fetch the open-source engine with `npx` |
+| Network: Lampo Cloud (`dimaartemi-lampo.hf.space`) | only if there is no Node/shell: render over HTTP |
 
-## Images and video for the listing (in this repository)
-- `media/cinematic.gif`: the 5 cinematic recipes (camera, depth, particles, film look)
-- `media/showreel.gif`: a 17-second showreel made with the skill
-- `media/blueprints.gif`, `media/styles.gif`: shot blueprints and visual styles
-- `docs/media/showreel.mp4`, `docs/media/sfx.mp4`: video with sound
-- Live demo: https://bossartemii.github.io/lampo/playground/
+No telemetry. Nothing is uploaded unless the agent uses the Cloud path.
+
+## Example session (real output)
+> **You:** Make a 15-second vertical ad for my coffee shop North Bean. Second cup half price before 10am. Site northbean.coffee.
+
+1. **Preflight**: `bash scripts/preflight.sh` → `LAMPO_PATH=npx` (Node found, engine fetched in 16 s).
+2. **Route and pack**: social ad · café pack · style Soft Pastel.
+3. **Shot plan** (screenshot 2): hook ticker takeover (handheld + push-in) → three benefit cards on a pull-out → "-50%" price stamp on a crash zoom → the brand condenses into a button, a cursor clicks it.
+4. **Spec**: the pack's ad with the slots swapped (brand, offer, benefits, contact).
+5. **Review** (screenshot 3): 10-frame contact sheet; the agent checks overlaps and safe areas, fixes, previews again.
+6. **Render**: `npx -y github:bossartemii/lampo render spec.json -o north-bean.mp4` → 1080×1920, 14.5 s, 30 fps, with sound, 1.5 MB.
+
+## How I made it
+I built Lampo, an open-source JSON → MP4 engine for agents (Skia canvas + ffmpeg, deterministic frames, parallel workers). Then I wrote down how a motion designer actually works: routes, styles, 16 shot blueprints, camera and depth rules, a finish pass, a review checklist. Every pack spec in this package was rendered, reviewed on a contact sheet and fixed until nothing overlapped or got cut. The cover and screenshots are frames from those packs, rendered by Lampo.
+
+## What's inside
+```
+lampo-motion-designer/
+├── SKILL.md                     director workflow + render preflight
+├── LICENSE                      Apache-2.0
+├── NOTICE                       what is free, what is paid
+├── scripts/preflight.sh         MCP → CLI → Cloud, deterministic
+└── references/
+    ├── spec.md                  full JSON reference
+    ├── categories.md            8 video routes
+    ├── visual-styles.md         9 styles with palette, type, motion
+    ├── blueprints.md            16 shot blueprints (runnable JSON)
+    ├── motion-principles.md     easing, choreography, sound rules
+    ├── pro-motion.md            camera, depth, grading, 5 cinematic recipes
+    ├── review.md                review checklist, defects → fixes
+    └── packs/                   12 industry packs × 3 finished specs
+```
+
+## FAQ
+**Isn't Lampo free on GitHub?** The engine is. The industry packs, the recipes and the review gate in this package are not in the repo. You pay for direction, not rendering.
+
+**Do I need a GPU or After Effects?** No. It renders on CPU with Node 18+. A 15 s vertical ad takes about 25 s on a laptop.
+
+**Which agents does it work with?** Any agent that loads SKILL.md: Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex and others. Shell agents render locally; agents with only HTTP use Lampo Cloud.
+
+**Can I use the videos commercially, for clients?** Yes. Videos you render are yours. The packs are licensed for your and your clients' videos; you can't resell them as a pack or skill.
+
+**What if rendering isn't possible in my environment?** The preflight says so (`LAMPO_PATH=none`). The agent hands you the spec and the two commands to render it elsewhere, and never pretends a video exists.
+
+## Images for the listing (folder `agensi/`)
+1. `cover.png` (1080×1080): cover
+2. `shot-plan.png` (1920×1080): the shot plan the agent writes before any JSON
+3. `contact-sheet.png`: the review sheet it reads before rendering
+4. `final-frame.png` (1080×1920): a frame of the finished video
+Extra: `media/cinematic.gif`, `media/showreel.gif`; video with sound `docs/media/showreel.mp4`.
+
+## Creator
+**Dimitri Artemii**, builder of Lampo, an open-source motion engine for AI agents.
+GitHub: [@bossartemii](https://github.com/bossartemii) · Hugging Face: [dimaartemi](https://huggingface.co/dimaartemi) · Playground: https://bossartemii.github.io/lampo/playground/
+<!-- add X / Instagram / LinkedIn here -->
 
 ## Links
-- Source: https://github.com/bossartemii/lampo
+- Engine (free): https://github.com/bossartemii/lampo
 - Playground: https://bossartemii.github.io/lampo/playground/
 - Lampo Cloud: https://dimaartemi-lampo.hf.space
